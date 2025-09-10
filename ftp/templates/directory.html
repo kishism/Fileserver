@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ dirpath }}/</h1>
+<ul>
+  {% for d in directories %}
+    <li>
+      <a href="{{ url_for('directories.list_directory', dirpath=(dirpath ~ '/' ~ d) if dirpath else d) }}">{{ d }}/</a>
+    </li>
+  {% endfor %}
+  {% for f in files %}
+    <li>{{ f.name }}</li>
+  {% endfor %}
+</ul>
+
+<!-- Dummy Upload form -->
+<form action="/files/newfile.txt" method="PUT" enctype="multipart/form-data">
+  <input type="file" name="content">
+  <button type="submit">Upload File</button>
+</form>
+{% endblock %}
