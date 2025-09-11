@@ -13,3 +13,29 @@ This project is designed around the idea that every HTTP response should guide t
 Hypermedia is the idea that information on the web should not only provide **data**, but also describe the **actions and navigation paths** available from that point. It extends the concept of “hypertext” (like links in an HTML page) into a broader system of **controls, affordances, and machine-readable guidance**.
 
 {###}
+
+Bozo Contributors
+
+<div>
+  <div>
+  <a href="https://github.com/kishism">
+    <img src="https://avatars.githubusercontent.com/u/157962042?v=4" width="100" style="margin: 0 10px;" alt="Kishi"/> 
+  </a>
+
+  <a href="https://github.com/DazeAkaRiku">
+    <img src="https://avatars.githubusercontent.com/u/121934782?v=4" width="100" style="margin: 0 10px;" alt="Riku"/>
+  </a>
+
+  <a href="https://github.com/Janica-Max">
+    <img src="https://avatars.githubusercontent.com/u/218932649?v=4" width="100" style="margin: 0 10px;" alt="Riku"/>
+  </a>
+
+  <a href="https://github.com/Yokkathsoe">
+    <img src="https://avatars.githubusercontent.com/u/159621518?v=4" width="100" style="margin: 0 10px;" alt="Riku"/>
+  </a>
+
+  <a href="https://github.com/saipanesaing">
+    <img src="https://avatars.githubusercontent.com/u/159633689?v=4" width="100" style="margin: 0 10px;" alt="Riku"/>
+  </a>
+  
+</div>
