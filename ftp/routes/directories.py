@@ -3,9 +3,10 @@
 # Each route calls helper functions from models.py to fetch data
 # and uses hypermedia.py to render the response with headers.
 
-from flask import Blueprint, abort, render_template
-from ftp.models import get_directory_contents
+from flask import Blueprint, abort, render_template, request, redirect, url_for
+from ftp.models import *
 from ftp.routes.hypermedia import hypermedia_directory_response
+import os 
 
 # Create a blueprint for directory routes.
 # This groups all directory-related endpoints together.
@@ -41,6 +42,56 @@ def list_directory(dirpath):
         
     return hypermedia_directory_response(dirpath, directories, files)
 
+# File Upload
+@bp.route("/upload", methods=["POST"])
+@bp.route("/<path:dirpath>/upload", methods=["POST"])
+def upload_file(dirpath=None):
+    """
+    Handle file upload for root or subdirectory.
+    dirpath=None for root
+    """
+    file = request.files.get("file")
+    if not file:
+        abort(400, description="No file provided")
+
+    actual_dirpath = dirpath if dirpath else "root"
+
+    # Save file using helper in models.py
+    save_file_to_directory(file, dirpath)
+
+    # After upload, redirect back to directory view
+    return redirect(url_for("directories.list_directory", dirpath=actual_dirpath if actual_dirpath != "root" else ""))
+
+# Folder Upload (webkitdirectory)
+@bp.route("/upload_folder", methods=["POST"])
+@bp.route("/<path:dirpath>/upload_folder", methods=["POST"])
+def upload_folder(dirpath=None):
+    """
+    Handle folder upload.
+    The browser sends multiple files with relative paths.
+    """
+    uploaded_files = request.files.getlist("files")
+    if not uploaded_files:
+        abort(400, description="No files provided")
+
+    actual_dirpath = dirpath if dirpath else None
+
+    for file in uploaded_files:
+
+        # Extract relative path
+        rel_path = file.filename  # In Flask, name comes from the uploaded file
+
+        # If using Chrome/WebKit, you can access webkitRelativePath
+        rel_path = getattr(file, "webkitRelativePath", file.filename)
+
+        # Combine with dirpath if uploading into a subdirectory
+        full_path = rel_path if actual_dirpath is None else os.path.join(actual_dirpath, rel_path).replace("\\", "/")
+
+        # Save file using your existing helper
+        save_file_from_folder(file, full_path)
+
+    return redirect(url_for("directories.list_directory", dirpath=actual_dirpath if actual_dirpath != None else ""))
+          
 # Error Handling Pages 
 # NNL
 @bp.app_errorhandler(404)
