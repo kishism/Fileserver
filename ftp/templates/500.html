@@ -1,8 +1,16 @@
 {% extends "base.html" %}
-{% block content %}
-<h1>500 - Server Error</h1>
-<p>Oops! Something went wrong on our end.</p>
 
-<!-- Link back to root -->
-<p><a href="{{ url_for('directories.list_root_directory') }}">Back to root</a></p>
+{% block content %}
+<div class="error-container">
+  <h1 class="error-500">500</h1>
+  <h2 class="error-title">Internal Server Error</h2>
+  <p class="error-message">
+    Oops! Something went wrong on our end. Please try again later.
+  </p>
+
+  <!-- Link back to root -->
+  <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
+    Back to Root
+  </a>
+</div>
 {% endblock %}

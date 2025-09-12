@@ -3,7 +3,7 @@
 # Each route calls helper functions from models.py to fetch data
 # and uses hypermedia.py to render the response with headers.
 
-from flask import Blueprint, abort
+from flask import Blueprint, abort, render_template
 from ftp.models import get_directory_contents
 from ftp.routes.hypermedia import hypermedia_directory_response
 
@@ -40,3 +40,13 @@ def list_directory(dirpath):
         abort(404) # triggers custom 404 error page
         
     return hypermedia_directory_response(dirpath, directories, files)
+
+# Error Handling Pages 
+# NNL
+@bp.app_errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
+
+@bp.app_errorhandler(500)
+def page_not_found(e):
+    return render_template("500.html"), 500
