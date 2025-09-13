@@ -142,3 +142,45 @@ def ensure_directory_exists(path):
 
     conn.close()
     return dir_id
+
+def create_directory_in_db(parent_path, new_dir_name):
+    """
+    Creates a new directory in the database under parent_path.
+    Raises ValueError if directory already exists.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Determine parent_id
+    if parent_path is None or parent_path == "root" or parent_path == "":
+        parent_id = None
+    else:
+        parts = parent_path.strip("/").split("/")
+        parent_id = None
+        for part in parts:
+            cursor.execute(
+                "SELECT id FROM directories WHERE name=? AND parent_id IS ?",
+                (part, parent_id)
+            )
+            row = cursor.fetchone()
+            if row is None:
+                conn.close()
+                raise ValueError(f"Parent directory {parent_path} does not exist")
+            parent_id = row["id"]
+
+    # Check if directory already exists
+    cursor.execute(
+        "SELECT 1 FROM directories WHERE name=? AND parent_id IS ?",
+        (new_dir_name, parent_id)
+    )
+    if cursor.fetchone():
+        conn.close()
+        raise ValueError(f"Directory {new_dir_name} already exists in {parent_path}")
+
+    # Insert new directory
+    cursor.execute(
+        "INSERT INTO directories (name, parent_id) VALUES (?, ?)",
+        (new_dir_name, parent_id)
+    )
+    conn.commit()
+    conn.close()
