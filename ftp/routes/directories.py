@@ -13,6 +13,7 @@ import os
 # No url_prefix here; it will be set when registering the blueprint in __init__.py
 bp = Blueprint("directories", __name__)  
 
+# List root directory
 @bp.route("/", methods=["GET"])
 def list_root_directory():
     """ 
@@ -23,6 +24,7 @@ def list_root_directory():
     directories, files = get_directory_contents(None)  # None = root
     return hypermedia_directory_response("root", directories, files)
 
+# List subdirectories
 @bp.route("/<path:dirpath>/", methods=["GET"])
 def list_directory(dirpath):
     """
@@ -91,7 +93,24 @@ def upload_folder(dirpath=None):
         save_file_from_folder(file, full_path)
 
     return redirect(url_for("directories.list_directory", dirpath=actual_dirpath if actual_dirpath != None else ""))
-          
+
+# Create Directory 
+@bp.route("/<path:dirpath>/create_directory", methods=["POST"])
+@bp.route("/create_directory", methods=["POST"])
+def create_directory(dirpath=None):
+    """
+    Handle creation of a new subdirectory.
+    """
+    dir_name = request.form.get("dirname")
+    if not dir_name:
+        abort(400, description="Directory name required")
+
+    actual_dirpath = dirpath if dirpath else "root"
+
+    create_directory_in_db(actual_dirpath, dir_name) 
+     
+    return redirect(url_for("directories.list_directory", dirpath=actual_dirpath if actual_dirpath != "root" else ""))
+
 # Error Handling Pages 
 # NNL
 @bp.app_errorhandler(404)
