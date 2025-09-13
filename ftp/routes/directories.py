@@ -50,3 +50,16 @@ def page_not_found(e):
 @bp.app_errorhandler(500)
 def page_not_found(e):
     return render_template("500.html"), 500
+
+@bp.app_errorhandler(403)
+def Access_Forbidden(e):
+    return render_template("403.html"), 403
+
+@bp.app_errorhandler(503)
+def Service_Unavailable(e):
+    return render_template("503.html"), 503
+
+@bp.app_errorhandler(400)
+def Bad_Service(e):
+    return render_template("400.html"), 400
+

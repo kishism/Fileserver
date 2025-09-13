@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-container">
+  <h1 class="error-code">403</h1>
+  <h2 class="error-title">Access Forbidden</h2>
+  <p class="error-message">
+    Nahh Ahh.You don’t have permission to view this page.
+  </p>
+  <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
+    Back to Root
+  </a>
+</div>
+{% endblock %}

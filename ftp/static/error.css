@@ -38,4 +38,15 @@
 
 .error-500 {
   color: #ff9800;
+
+}
+.error-401 {
+  color:#007bff
+}
+
+.error-503{
+  color:aqua
+}
+.error-400{
+  color:#dc3545
 }

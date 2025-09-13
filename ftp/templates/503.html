@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-container">
+  <h1 class="error-code">503</h1>
+  <h2 class="error-title">Service Unavailable</h2>
+  <p class="error-message">
+    Humm.The server is temporarily unavailable. Please try again later.
+  </p>
+  <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
+    Back to Root
+  </a>
+</div>
+{% endblock %}
