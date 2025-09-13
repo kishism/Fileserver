@@ -133,3 +133,20 @@ def Service_Unavailable(e):
 def Bad_Service(e):
     return render_template("400.html"), 400
 
+@bp.app_errorhandler(408)
+def Request_Timeout(e):
+    return render_template("408.html"), 408
+
+@bp.app_errorhandler(429)
+def Too_Many_Request(e):
+    return render_template("429.html"), 429
+
+@bp.app_errorhandler(502)
+def Bad_Gateway(e):
+    return render_template("502.html"), 502
+@bp.app_errorhandler(504)
+def Gateway_Timeout(e):
+    return render_template("504.html"), 504
+@bp.app_errorhandler(510)
+def Gone(e):
+    return render_template("510.html"), 510

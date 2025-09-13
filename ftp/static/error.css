@@ -50,3 +50,20 @@
 .error-400{
   color:#dc3545
 }
+.error-408{
+  color:blueviolet
+}
+
+.error-429{
+  color:cornflowerblue
+}
+
+.error-502{
+  color:#007bff
+}
+.error-504{
+  color:#007bff
+}
+.error-510{
+  color:#007bff
+}
