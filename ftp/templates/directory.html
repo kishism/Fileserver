@@ -12,6 +12,12 @@
   {% endfor %}
 </ul>
 
+<!-- Create Directory -->
+<form action="{{ url_for('directories.create_directory', dirpath=dirname if dirname != 'root' else '') }}" method="POST">
+  <input type="text" name="dirname" placeholder="New Folder Name" required>
+  <button type="submit">Create Folder</button>
+</form>
+
 <!-- File Upload -->
 <form action="{{ url_for('directories.upload_file', dirpath=dirname if dirname != 'root' else '') }}" 
       method="POST" enctype="multipart/form-data">
