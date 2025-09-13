@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-container">
+  <h1 class="error-code">502</h1>
+  <h2 class="error-title">Bad Gateway</h2>
+  <p class="error-message">
+    The server received an invalid response from the upstream server.
+  </p>
+  <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
+    Back to Home
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-container">
+  <h1 class="error-code">429</h1>
+  <h2 class="error-title">Too Many Requests</h2>
+  <p class="error-message">
+    You have sent too many requests in a short period. Please wait and try again later.
+  </p>
+  <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
+    Back to Home
+  </a>
+</div>
+{% endblock %}

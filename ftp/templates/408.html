@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-container">
+  <h1 class="error-code">408</h1>
+  <h2 class="error-title">Request Timeout</h2>
+  <p class="error-message">
+    Huu.The server timed out waiting for your request.
+  </p>
+  <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
+    Try Again
+  </a>
+</div>
+{% endblock %}

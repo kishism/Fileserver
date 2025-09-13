@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-container">
+  <h1 class="error-code">410</h1>
+  <h2 class="error-title">Resource Gone</h2>
+  <p class="error-message">
+    The requested resource is no longer available on this server.
+  </p>
+  <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
+    Back to Home
+  </a>
+</div>
+{% endblock %}
