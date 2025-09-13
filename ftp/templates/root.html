@@ -12,9 +12,25 @@
   {% endfor %}
 </ul>
 
-<!-- Dummy Upload form -->
-<form action="/files/newfile.txt" method="PUT" enctype="multipart/form-data">
-  <input type="file" name="content">
+<!-- Create Directory -->
+<form action="{{ url_for('directories.create_directory', dirpath=dirname if dirname != 'root' else '') }}" method="POST">
+  <input type="text" name="dirname" placeholder="New Folder Name" required>
+  <button type="submit">Create Folder</button>
+</form>
+
+<!-- File Upload -->
+<form action="{{ url_for('directories.upload_file', dirpath=dirname if dirname != 'root' else '') }}" 
+      method="POST" enctype="multipart/form-data">
+  <input type="file" name="file">
   <button type="submit">Upload File</button>
 </form>
+
+<!-- Folder Upload -->
+<form action="{{ url_for('directories.upload_folder', dirpath=dirname if dirname != 'root' else '') }}"
+      method="POST" enctype="multipart/form-data">
+  <!-- Allows folder selection -->
+  <input type="file" name="files" webkitdirectory multiple>
+  <button type="submit">Upload Folder</button>
+</form>
+
 {% endblock %}
