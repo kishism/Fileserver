@@ -1,11 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>FTP Server</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}FTP Server{% endblock %}</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='error.css') }}">
+    <!-- Main stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+
+    {% block extra_head %}{% endblock %}
   </head>
   <body>
-    {% block content %}{% endblock %}
+    <div class="page-wrapper">
+      <header class="site-header">
+        <h1 class="site-title">FTP Server</h1>
+      </header>
+
+      <main class="content">
+        {% block content %}{% endblock %}
+      </main>
+
+      <footer class="site-footer">
+        <p>&copy; 2025 FTP Server Project</p>
+      </footer>
+    </div>
   </body>
 </html>

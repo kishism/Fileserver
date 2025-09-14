@@ -1,12 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ filename }}</h1>
 
+<!-- Breadcrumb / Backlink bar -->
+<!-- Breadcrumb / Backlink bar -->
+<div class="file-breadcrumb">
+  {% set parts = dirpath.split('/') if dirpath else ['root'] %}
+  {% set current_path = '' %}
+  
+  <a href="{{ url_for('directories.list_directory', dirpath='') }}" class="breadcrumb-link">
+    <img src="{{ url_for('static', filename='icons/back2.svg') }}" alt="Back" class="breadcrumb-icon">
+  </a>
+  
+  {% for part in parts %}
+    {% if current_path %}
+      {% set current_path = current_path ~ '/' ~ part %}
+    {% else %}
+      {% set current_path = part %}
+    {% endif %}
+    
+    <a href="{{ url_for('directories.list_directory', dirpath=current_path) }}" class="breadcrumb-link">
+      {{ part }}
+    </a>
+    
+    {% if not loop.last %}
+      <span class="breadcrumb-separator">/</span>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<!-- File Title -->
+<h1 class="file-title">{{ filename }}</h1>
+
+<!-- Dummy action buttons -->
+<div class="file-actions">
+  <button class="btn">Download</button>
+  <button class="btn">Rename</button>
+  <button class="btn">Delete</button>
+  <button class="btn">Share</button>
+</div>
+
+<!-- Image preview -->
 {% if 'image' in mime_type %}
-  <img src="{{ url_for('directories.serve_file', filepath=filepath) }}" alt="{{ filename }}">
+<div class="file-preview">
+  <img src="{{ url_for('directories.serve_file', filepath=filepath) }}" 
+       alt="{{ filename }}">
+</div>
 {% endif %}
 
-<p>MIME type: {{ mime_type }}</p>
-<p>Size: {{ size }} bytes</p>
+<!-- File metadata table -->
+<table class="file-meta">
+  <tr>
+    <th>Media type</th>
+    <td>{{ mime_type }}</td>
+  </tr>
+  <tr>
+    <th>Size</th>
+    <td>{{ size }} bytes</td>
+  </tr>
+</table>
 
 {% endblock %}

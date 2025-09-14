@@ -1,47 +1,56 @@
 {% extends "base.html" %}
+
+{% block title %}Directory: {{ dirpath }}{% endblock %}
+
 {% block content %}
-<h1>{{ dirpath }}/</h1>
-<ul>
-  {% for d in directories %}
-    <li>
-      <a href="{{ url_for('directories.list_directory', dirpath=(dirpath ~ '/' ~ d) if dirpath else d) }}">{{ d }}/</a>
-    </li>
-  {% endfor %}
-  {% for f in files %}
-    <li>
-      {% if f.mime_type.startswith('image/') %}
-      <a href="{{ url_for('directories.view_file', filepath=(dirpath ~ '/' ~ f.name) if dirpath and dirpath != 'root' else f.name) }}">
-        {{ f.name }}
-      </a>
-        {% else %}
+ <section class="toolbar">
+  <form action="{{ url_for('directories.create_directory', dirpath=dirname if dirname != 'root' else '') }}" method="POST" class="toolbar-item">
+    <input type="text" name="dirname" placeholder="New Folder Name" required title="Folder Name">
+    <button type="submit" class="icon-btn" title="Create Folder">
+      <span class="icon folder-icon"></span>
+    </button>
+  </form>
+
+  <form action="{{ url_for('directories.upload_file', dirpath=dirname if dirname != 'root' else '') }}" 
+        method="POST" enctype="multipart/form-data" class="toolbar-item">
+    <input type="file" name="file" id="upload-file" hidden onchange="this.form.submit()">
+    <label for="upload-file" class="icon-btn" title="Upload File">
+      <span class="icon file-upload-icon"></span>
+    </label>
+    <button type="submit" hidden></button>
+  </form>
+
+  <form action="{{ url_for('directories.upload_folder', dirpath=dirname if dirname != 'root' else '') }}"
+        method="POST" enctype="multipart/form-data" class="toolbar-item">
+    <input type="file" name="files" id="upload-folder" webkitdirectory multiple hidden onchange="this.form.submit()">
+    <label for="upload-folder" class="icon-btn" title="Upload Folder">
+      <span class="icon folder-upload-icon"></span>
+    </label>
+    <button type="submit" hidden></button>
+  </form>
+</section>
+
+
+  <h2>{{ dirpath }}/</h2>
+
+  <ul class="file-list">
+    {% for d in directories %}
+      <li class="folder">
+        <a href="{{ url_for('directories.list_directory', dirpath=(dirpath ~ '/' ~ d) if dirpath else d) }}">
+          <span class="file-icon folder-icon"></span>
+          {{ d }}
+        </a>
+      </li>
+    {% endfor %}
+  
+    {% for f in files %}
+      <li class="file">
         <a href="{{ url_for('directories.view_file', filepath=(dirpath ~ '/' ~ f.name) if dirpath and dirpath != 'root' else f.name) }}">
+          <span class="file-icon {% if f.mime_type.startswith('image/') %}image-file-icon{% else %}regular-file-icon{% endif %}"></span>
           {{ f.name }}
-        </a>        
-      {% endif %}
-    </li>
-  {% endfor %}
-</ul>
-
-<!-- Create Directory -->
-<form action="{{ url_for('directories.create_directory', dirpath=dirname if dirname != 'root' else '') }}" method="POST">
-  <input type="text" name="dirname" placeholder="New Folder Name" required>
-  <button type="submit">Create Folder</button>
-</form>
-
-<!-- File Upload -->
-<form action="{{ url_for('directories.upload_file', dirpath=dirname if dirname != 'root' else '') }}" 
-      method="POST" enctype="multipart/form-data">
-  <input type="file" name="file">
-  <button type="submit">Upload File</button>
-</form>
-
-<!-- Folder Upload -->
-<form action="{{ url_for('directories.upload_folder', dirpath=dirname if dirname != 'root' else '') }}"
-      method="POST" enctype="multipart/form-data">
-  <!-- Allows folder selection -->
-  <input type="file" name="files" webkitdirectory multiple>
-  <button type="submit">Upload Folder</button>
-</form>
-
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
 
 {% endblock %}
