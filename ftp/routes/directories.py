@@ -3,10 +3,18 @@
 # Each route calls helper functions from models.py to fetch data
 # and uses hypermedia.py to render the response with headers.
 
-from flask import Blueprint, abort, render_template, request, redirect, url_for
+import io
+from flask import Blueprint, abort, render_template, request, redirect, send_file, url_for
 from ftp.models import *
 from ftp.routes.hypermedia import hypermedia_directory_response
 import os 
+from werkzeug.exceptions import HTTPException
+
+# 510 status code from HTTPException
+# 510 is not a standard HTTP status code, hence Flask doesn't recongize it
+class NotExtended(HTTPException):
+    code = 510
+    description = "Not Extended"
 
 # Create a blueprint for directory routes.
 # This groups all directory-related endpoints together.
@@ -111,42 +119,87 @@ def create_directory(dirpath=None):
      
     return redirect(url_for("directories.list_directory", dirpath=actual_dirpath if actual_dirpath != "root" else ""))
 
+# File Viewing
+@bp.route("/file/<path:filepath>", methods=["GET"])
+def view_file(filepath):
+    """
+    Render a page showing file metadata and optional preview.
+    """
+    file_data, mime_type = get_file_from_db(filepath)
+    if file_data is None:
+        print("DEBUG: file not found in DB")
+        abort(404)
+
+    return render_template(
+        "file.html",
+        filepath=filepath,
+        filename=os.path.basename(filepath),
+        mime_type=mime_type,
+        size=len(file_data)
+    )
+
+# File Serving
+@bp.route("/raw/<path:filepath>")
+def serve_file(filepath):
+    """ 
+    Return raw file bytes for download or inline viewing.
+    """
+    file_data, mime_type = get_file_from_db(filepath)
+    if not file_data:
+        abort(404)
+    return send_file(io.BytesIO(file_data),
+                     mimetype=mime_type,
+                     as_attachment=False,  # False = render inline if possible
+                     download_name=os.path.basename(filepath))
+
 # Error Handling Pages 
 # NNL
+# Handle 404 Not Found errors
 @bp.app_errorhandler(404)
 def page_not_found(e):
     return render_template("404.html"), 404
 
+# Handle 500 Internal Server errors
 @bp.app_errorhandler(500)
-def page_not_found(e):
+def internal_server_errors(e):
     return render_template("500.html"), 500
 
+# Handle 403 Forbidden errors
 @bp.app_errorhandler(403)
-def Access_Forbidden(e):
+def access_forbidden(e):
     return render_template("403.html"), 403
 
+# Handle 503 Service Unavailable errors
 @bp.app_errorhandler(503)
-def Service_Unavailable(e):
+def service_unavailable(e):
     return render_template("503.html"), 503
 
+# Handle 400 Bad Request errors
 @bp.app_errorhandler(400)
-def Bad_Service(e):
+def bad_service(e):
     return render_template("400.html"), 400
 
+# Handle 408 Request Timeout errors
 @bp.app_errorhandler(408)
-def Request_Timeout(e):
+def request_timeout(e):
     return render_template("408.html"), 408
 
+# Handle 429 Too Many Requests errors
 @bp.app_errorhandler(429)
-def Too_Many_Request(e):
+def too_many_request(e):
     return render_template("429.html"), 429
 
+# Handle 502 Bad Gateway errors
 @bp.app_errorhandler(502)
-def Bad_Gateway(e):
+def bad_gateway(e):
     return render_template("502.html"), 502
+
+# Handle 504 Gateway Timeout errors
 @bp.app_errorhandler(504)
-def Gateway_Timeout(e):
+def gateway_timeout(e):
     return render_template("504.html"), 504
-@bp.app_errorhandler(510)
-def Gone(e):
-    return render_template("510.html"), 510
+
+# Handle 510 Not Extended / Gone errors
+@bp.app_errorhandler(NotExtended)
+def not_extended(e):
+    return "Not Extended", 510
