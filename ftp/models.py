@@ -77,8 +77,8 @@ def save_file_to_directory(file, dirpath):
 
     # Insert file metadata
     cursor.execute(
-        "INSERT INTO files (name, mime_type, directory_id) VALUES (?, ?, ?)",
-        (file.filename, file.mimetype, dir_id)
+        "INSERT INTO files (name, mime_type, content, directory_id) VALUES (?, ?, ?, ?)",
+        (file.filename, file.mimetype, file.read(), dir_id)
     )
     conn.commit()
     conn.close()
@@ -184,3 +184,43 @@ def create_directory_in_db(parent_path, new_dir_name):
     )
     conn.commit()
     conn.close()
+
+def get_file_from_db(filepath):
+    """
+    Retrieve file bytes and MIME type from DB by full path.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Split into directory + filename
+    parts = filepath.strip("/").split("/")
+    filename = parts[-1]
+    dir_path_parts = parts[:-1]
+
+    print("DEBUG: filename =", filename)
+    print("DEBUG: dir_path_parts =", dir_path_parts)
+
+    parent_id = None
+    for part in dir_path_parts:
+        cursor.execute(
+            "SELECT id FROM directories WHERE name=? AND parent_id IS ?",
+            (part, parent_id)
+        )
+        row = cursor.fetchone()
+        print("DEBUG: checking directory part =", part, "found row:", row)
+        if row is None:
+            conn.close()
+            return None, None
+        parent_id = row["id"]
+
+    cursor.execute(
+        "SELECT content, mime_type FROM files WHERE name=? AND directory_id IS ?",
+        (filename, parent_id)
+    )
+    row = cursor.fetchone()
+    print("DEBUG: final file row:", row)
+    conn.close()
+    if row:
+        print("DEBUG: returning content type =", type(row["content"]))
+        return row["content"], row["mime_type"]
+    return None, None
