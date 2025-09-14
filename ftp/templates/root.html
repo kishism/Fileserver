@@ -8,7 +8,11 @@
     </li>
   {% endfor %}
   {% for f in files %}
-    <li>{{ f.name }}</li>
+  <li>
+    <a href="{{ url_for('directories.view_file', filepath=(dirpath ~ '/' ~ f.name) if dirpath and dirpath != 'root' else f.name) }}">
+      {{ f.name }}
+    </a>    
+  </li>
   {% endfor %}
 </ul>
 

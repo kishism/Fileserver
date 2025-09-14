@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ filename }}</h1>
+
+{% if 'image' in mime_type %}
+  <img src="{{ url_for('directories.serve_file', filepath=filepath) }}" alt="{{ filename }}">
+{% endif %}
+
+<p>MIME type: {{ mime_type }}</p>
+<p>Size: {{ size }} bytes</p>
+
+{% endblock %}
