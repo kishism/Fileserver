@@ -150,3 +150,6 @@ def Gateway_Timeout(e):
 @bp.app_errorhandler(510)
 def Gone(e):
     return render_template("510.html"), 510
+@bp.app_errorhandler(409)
+def Files_or_Foler_is_exit(e):
+    return render_template("409.html"), 409

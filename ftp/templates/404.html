@@ -8,6 +8,16 @@
     The resource you are looking for does not exist.
   </p>
 
+  <!-- Extra info about the status code -->
+  <div class="error-details">
+    <h3>What does HTTP 404 mean?</h3>
+    <p>
+      A <strong>404 Not Found</strong> error means the server could not find 
+      the requested resource. This often happens if the page has been moved, 
+      deleted, or the URL was typed incorrectly.
+    </p>
+  </div>
+
   <!-- Link back to root -->
   <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
     Back to Root

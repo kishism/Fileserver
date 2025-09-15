@@ -5,8 +5,19 @@
   <h1 class="error-code">403</h1>
   <h2 class="error-title">Access Forbidden</h2>
   <p class="error-message">
-    Nahh Ahh.You don’t have permission to view this page.
+    Nahh Ahh. You don’t have permission to view this page.
   </p>
+
+  <!-- Extra info about the status code -->
+  <div class="error-details">
+    <h3>What does HTTP 403 mean?</h3>
+    <p>
+      A <strong>403 Forbidden</strong> error means the server understood your request 
+      but refuses to authorize it. This usually happens when you try to access a resource 
+      without the correct permissions or credentials.
+    </p>
+  </div>
+
   <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
     Back to Root
   </a>

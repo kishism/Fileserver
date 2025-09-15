@@ -7,6 +7,17 @@
   <p class="error-message">
     You have sent too many requests in a short period. Please wait and try again later.
   </p>
+
+  <!-- Extra info about the status code -->
+  <div class="error-details">
+    <h3>What does HTTP 429 mean?</h3>
+    <p>
+      A <strong>429 Too Many Requests</strong> error means the client has exceeded 
+      the rate limit set by the server. This is a way to prevent abuse or overloading 
+      of the system. Waiting before retrying usually resolves this issue.
+    </p>
+  </div>
+
   <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
     Back to Home
   </a>

@@ -5,8 +5,20 @@
   <h1 class="error-code">408</h1>
   <h2 class="error-title">Request Timeout</h2>
   <p class="error-message">
-    Huu.The server timed out waiting for your request.
+    Huu. The server timed out waiting for your request.
   </p>
+
+  <!-- Extra info about the status code -->
+  <div class="error-details">
+    <h3>What does HTTP 408 mean?</h3>
+    <p>
+      A <strong>408 Request Timeout</strong> error means the client took too long 
+      to send a request to the server. The server closes the connection 
+      to free up resources. This often happens on slow networks or when 
+      the request is left idle for too long.
+    </p>
+  </div>
+
   <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
     Try Again
   </a>

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-container">
+  <h1 class="error-code">400</h1>
+  <h2 class="error-title">Bad Request</h2>
+  <p class="error-message">
+    The server could not understand your request.
+  </p>
+  
+  <!-- Extra message about HTTP status code -->
+  <div class="error-details">
+    <h3>What does HTTP 400 mean?</h3>
+    <p>
+      A <strong>400 Bad Request</strong> error occurs when the server cannot 
+      process the request due to invalid syntax, missing parameters, or a 
+      malformed request. It’s often caused by client-side input errors.
+    </p>
+  </div>
+
+  <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
+    Back to Home
+  </a>
+</div>
+{% endblock %}

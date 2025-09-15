@@ -7,6 +7,18 @@
   <p class="error-message">
     The server received an invalid response from the upstream server.
   </p>
+
+  <!-- Extra info about the status code -->
+  <div class="error-details">
+    <h3>What does HTTP 502 mean?</h3>
+    <p>
+      A <strong>502 Bad Gateway</strong> error means one server acting as a 
+      gateway or proxy received an invalid response from another server. 
+      This often happens when the upstream server is overloaded, down, 
+      or misconfigured.
+    </p>
+  </div>
+
   <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
     Back to Home
   </a>

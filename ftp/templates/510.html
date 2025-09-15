@@ -7,6 +7,17 @@
   <p class="error-message">
     The requested resource is no longer available on this server.
   </p>
+
+  <!-- Extra info about the status code -->
+  <div class="error-details">
+    <h3>What does HTTP 410 mean?</h3>
+    <p>
+      A <strong>410 Gone</strong> error means the requested resource has been 
+      permanently removed from the server. Unlike a 404 Not Found, this 
+      indicates that the resource is intentionally gone and will not return.
+    </p>
+  </div>
+
   <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
     Back to Home
   </a>

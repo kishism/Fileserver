@@ -7,6 +7,17 @@
   <p class="error-message">
     The server did not receive a timely response from the upstream server.
   </p>
+
+  <!-- Extra info about the status code -->
+  <div class="error-details">
+    <h3>What does HTTP 504 mean?</h3>
+    <p>
+      A <strong>504 Gateway Timeout</strong> error occurs when a server acting as a 
+      gateway or proxy does not receive a timely response from the upstream server. 
+      This usually happens if the upstream server is slow, down, or overloaded.
+    </p>
+  </div>
+
   <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
     Try Again
   </a>

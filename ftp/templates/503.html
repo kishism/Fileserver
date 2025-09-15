@@ -5,8 +5,20 @@
   <h1 class="error-code">503</h1>
   <h2 class="error-title">Service Unavailable</h2>
   <p class="error-message">
-    Humm.The server is temporarily unavailable. Please try again later.
+    Humm. The server is temporarily unavailable. Please try again later.
   </p>
+
+  <!-- Extra info about the status code -->
+  <div class="error-details">
+    <h3>What does HTTP 503 mean?</h3>
+    <p>
+      A <strong>503 Service Unavailable</strong> error means the server is 
+      temporarily unable to handle the request. This can occur due to 
+      maintenance, overloading, or a temporary outage. It usually resolves 
+      once the server is back online or less busy.
+    </p>
+  </div>
+
   <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
     Back to Root
   </a>

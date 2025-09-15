@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="error-container">
+  <h1 class="error-code">409</h1>
+  <h2 class="error-title">Conflict Detected</h2>
+  <p class="error-message">
+    Oops! A folder or file you are trying to create/upload already exists.
+  </p>
+
+  <!-- Extra info about the status code -->
+  <div class="error-details">
+    <h3>What does HTTP 409 mean?</h3>
+    <p>
+      A <strong>409 Conflict</strong> error occurs when the request could not be 
+      completed because it conflicts with the current state of the resource. 
+      In this case, a folder or file with the same name already exists. 
+      You can rename the item or choose to overwrite it.
+    </p>
+  </div>
+
+  <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
+    Go Back
+  </a>
+</div>
+{% endblock %}

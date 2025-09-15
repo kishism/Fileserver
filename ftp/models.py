@@ -182,5 +182,6 @@ def create_directory_in_db(parent_path, new_dir_name):
         "INSERT INTO directories (name, parent_id) VALUES (?, ?)",
         (new_dir_name, parent_id)
     )
+    
     conn.commit()
     conn.close()

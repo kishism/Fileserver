@@ -8,6 +8,17 @@
     Oops! Something went wrong on our end. Please try again later.
   </p>
 
+  <!-- Extra info about the status code -->
+  <div class="error-details">
+    <h3>What does HTTP 500 mean?</h3>
+    <p>
+      A <strong>500 Internal Server Error</strong> indicates that the server 
+      encountered an unexpected condition that prevented it from fulfilling 
+      the request. This is a general error and usually means there’s an 
+      issue with the server’s configuration or code, not the client’s request.
+    </p>
+  </div>
+
   <!-- Link back to root -->
   <a href="{{ url_for('directories.list_root_directory') }}" class="error-btn">
     Back to Root

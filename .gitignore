@@ -1,14 +1,14 @@
 venv/
-.env/
+.env
 
 instance/
 *.sqlite3
 *.db
 
-__pycache__/
-*.__pycache__
+pycache/
+*.pycache
 
 .vscode/
 .idea/
-u
+
 Thumbs.db
