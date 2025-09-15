@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- Breadcrumb / Backlink bar -->
-<!-- Breadcrumb / Backlink bar -->
 <div class="file-breadcrumb">
-  {% set parts = dirpath.split('/') if dirpath else ['root'] %}
+  {% set parts = dirpath.split('/') if dirpath else ['/'] %}
   {% set current_path = '' %}
   
   <a href="{{ url_for('directories.list_directory', dirpath='') }}" class="breadcrumb-link">
@@ -28,10 +26,8 @@
   {% endfor %}
 </div>
 
-<!-- File Title -->
 <h1 class="file-title">{{ filename }}</h1>
 
-<!-- Dummy action buttons -->
 <div class="file-actions">
   <button class="btn">Download</button>
   <button class="btn">Rename</button>
@@ -39,7 +35,6 @@
   <button class="btn">Share</button>
 </div>
 
-<!-- Image preview -->
 {% if 'image' in mime_type %}
 <div class="file-preview">
   <img src="{{ url_for('directories.serve_file', filepath=filepath) }}" 
@@ -47,7 +42,6 @@
 </div>
 {% endif %}
 
-<!-- File metadata table -->
 <table class="file-meta">
   <tr>
     <th>Media type</th>

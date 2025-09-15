@@ -1,13 +1,14 @@
+<!-- root.html -->
 {% extends "base.html" %}
 {% block content %}
-<!-- Toolbar actions -->
 <section class="toolbar">
-  <form action="{{ url_for('directories.create_directory', dirpath=dirname if dirname != 'root' else '') }}" method="POST" class="toolbar-item">
+  <form action="{{ url_for('directories.create_directory') }}" method="POST" class="toolbar-item">
+    <input type="hidden" name="parent_dir" value="{{ dirname if dirname != 'root' else '' }}">
     <input type="text" name="dirname" placeholder="New Folder Name" required title="Folder Name">
     <button type="submit" class="icon-btn" title="Create Folder">
       <span class="icon folder-icon"></span>
     </button>
-  </form>
+</form>
 
   <form action="{{ url_for('directories.upload_file', dirpath=dirname if dirname != 'root' else '') }}" 
         method="POST" enctype="multipart/form-data" class="toolbar-item">
@@ -28,7 +29,7 @@
   </form>
 </section>
 
-<h1>{{ dirpath }}/</h1>
+<h1>/</h1>
 
 <ul class="file-list">
   {% for d in directories %}
