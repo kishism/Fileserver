@@ -1,20 +1,18 @@
 venv/
+.venv/
+
 .env
 
-instance/
+__pycache__/
+*.pyc
+
 *.sqlite3
 *.db
 
-pycache/
-*.pycache
+instance/
 
 .vscode/
 .idea/
 
 Thumbs.db
-# Ignore Python cache and virtual environment
-__pycache__/
-ftp/__pycache__/
-ftp/routes/__pycache__/
-*.pyc
-.venv/
+.DS_Store

@@ -166,9 +166,8 @@ def create_directory_in_db(parent_path, new_dir_path):
     conn.commit()
 
     # Start from root
-    parent_id = None if not parent_path else None
+    parent_id = None
     if parent_path:
-        # Resolve parent_path
         parts = parent_path.strip("/").split("/")
         for part in parts:
             if parent_id is None:
@@ -194,7 +193,9 @@ def create_directory_in_db(parent_path, new_dir_path):
                     (part, parent_id)
                 )
                 row = cursor.fetchone()
-            parent_id = row["id"]
+                if row is None:
+                    raise ValueError(f"Failed to create intermediate directory '{part}' in DB.")
+            parent_id = row[0]
 
     # Create nested folders in new_dir_path
     for part in new_dir_path.strip("/").split("/"):
@@ -210,7 +211,7 @@ def create_directory_in_db(parent_path, new_dir_path):
             )
         row = cursor.fetchone()
         if row:
-            parent_id = row["id"]
+            parent_id = row[0]
             continue
         # Insert folder
         cursor.execute(
@@ -223,9 +224,12 @@ def create_directory_in_db(parent_path, new_dir_path):
             (part, parent_id)
         )
         row = cursor.fetchone()
-        parent_id = row["id"]
+        if row is None:
+            raise ValueError(f"Failed to create new directory '{part}' in DB.")
+        parent_id = row[0]
 
     conn.close()
+    return parent_id  # Optionally return id of the final created directory
 
 
 def get_file_from_db(filepath):
@@ -260,13 +264,8 @@ def get_file_from_db(filepath):
         "SELECT content, mime_type FROM files WHERE name=? AND directory_id IS ?",
         (filename, parent_id)
     )
-<<<<<<< HEAD
-    
-    conn.commit()
-=======
     row = cursor.fetchone()
     # print("DEBUG: final file row:", row)
->>>>>>> 908988c95b3752a03aef2b4e4b47aec9102cc193
     conn.close()
     if row:
         # print("DEBUG: returning content type =", type(row["content"]))

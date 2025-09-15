@@ -91,7 +91,6 @@ def upload_file(dirpath):
         flash(f"Failed to save uploaded file: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=actual_dirpath))
     
-    
     # Guess mime type from the physical file for metadata storage
     mime_type, _ = mimetypes.guess_type(physical_file_path)
     if not mime_type:
@@ -103,7 +102,6 @@ def upload_file(dirpath):
     else:
         return redirect(url_for("directories.list_directory", dirpath=actual_dirpath))
 
-# Folder Upload (webkitdirectory)
 @bp.route("/upload_folder", methods=["POST"])
 @bp.route("/<path:dirpath>/upload_folder", methods=["POST"])
 def upload_folder(dirpath=None):
@@ -115,23 +113,30 @@ def upload_folder(dirpath=None):
     if not uploaded_files:
         abort(400, description="No files provided")
 
-    actual_dirpath = dirpath if dirpath else None
+    actual_dirpath = dirpath if dirpath else ""
+    saved_files = []
 
     for file in uploaded_files:
-
-        # Extract relative path
-        rel_path = file.filename  # In Flask, name comes from the uploaded file
-
-        # If using Chrome/WebKit, you can access webkitRelativePath
+        # Extract relative path; webkitRelativePath is supported by some browsers
         rel_path = getattr(file, "webkitRelativePath", file.filename)
 
-        # Combine with dirpath if uploading into a subdirectory
-        full_path = rel_path if actual_dirpath is None else os.path.join(actual_dirpath, rel_path).replace("\\", "/")
+        # Normalize path delimiter to OS format and prepend parent dir if any
+        rel_path = rel_path.replace("/", os.path.sep)
+        full_path = os.path.normpath(os.path.join(BASE_PATH, actual_dirpath, rel_path))
 
-        # Save file using your existing helper
-        save_file_from_folder(file, full_path)
+        # Ensure parent directories exist
+        parent_dir = os.path.dirname(full_path)
+        os.makedirs(parent_dir, exist_ok=True)
 
-    return redirect(url_for("directories.list_directory", dirpath=actual_dirpath if actual_dirpath != None else ""))
+        # Save each file to the filesystem
+        file.save(full_path)
+        saved_files.append(full_path)
+
+        # Optionally, update database with file metadata here
+        # e.g. create_file_in_db(rel_path, actual_dirpath, ...)
+
+    flash(f"Uploaded {len(saved_files)} files successfully.", "success")
+    return redirect(url_for("directories.list_directory", dirpath=actual_dirpath or ""))
 
 # Create Directory 
 @bp.route("/create_directory", methods=["POST"])
@@ -146,48 +151,59 @@ def create_directory():
         flash("Folder name is required.", "error")
         return redirect(request.referrer or url_for("directories.list_root_directory"))
 
-    # Allow nested folders like "project/2025/september"
     path_parts = [secure_filename(p) for p in new_dir_name.strip("/").split("/") if p]
+    print(f"path_parts after split and sanitize: {path_parts}")
+
     if not path_parts:
         flash("Invalid folder name.", "error")
         return redirect(request.referrer or url_for("directories.list_root_directory"))
 
-    # Build physical path
-    physical_parent = os.path.join(BASE_PATH, parent_dir)
-    physical_folder_path = os.path.normpath(os.path.join(physical_parent, *path_parts))
+    physical_parent = os.path.abspath(os.path.join(BASE_PATH, parent_dir))
+    physical_folder_path = os.path.abspath(os.path.normpath(os.path.join(physical_parent, *path_parts)))
+    print(f"Resolved physical folder path (absolute): {physical_folder_path}")
 
-    # Safety check: prevent escaping BASE_PATH
     if not physical_folder_path.startswith(os.path.abspath(BASE_PATH)):
         flash("Invalid folder path.", "error")
         return redirect(request.referrer or url_for("directories.list_root_directory"))
 
-    # Check if folder already exists on disk
     if os.path.exists(physical_folder_path):
         flash("Folder already exists on disk.", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=parent_dir))
 
-    # Create folder(s) on disk
     try:
         os.makedirs(physical_folder_path, exist_ok=False)
         print(f"Created folder: {physical_folder_path}")
     except Exception as e:
+        print(f"Exception during folder creation: {e}")
         flash(f"Failed to create folder on disk: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=parent_dir))
 
-    # Insert into DB
+    print("Folders currently in parent directory:", os.listdir(physical_parent))
+
+    # Defensive DB insertion with debugging
     try:
-        create_directory_in_db(parent_dir, "/".join(path_parts))
+        print(f"Calling create_directory_in_db with parent_dir='{parent_dir}' new_dir='{ '/'.join(path_parts) }'")
+        result = create_directory_in_db(parent_dir, "/".join(path_parts))
+
+        if result is None:
+            raise ValueError("Database insertion function returned None unexpectedly")
+
+        # Optionally check result contents here if expected to be dict or tuple.
+        print("Database insert successful:", result)
     except Exception as e:
-        # Roll back disk if DB insertion fails
+        # Roll back folder creation on DB insertion failure
+        print(f"Database insertion failed: {e}. Rolling back folder creation...")
         try:
             os.rmdir(physical_folder_path)
-        except Exception:
-            pass
+            print(f"Rolled back folder at {physical_folder_path}")
+        except Exception as rollback_e:
+            print(f"Rollback folder removal failed: {rollback_e}")
         flash(f"Database error: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=parent_dir))
 
     flash(f"Folder '{'/'.join(path_parts)}' created successfully.", "success")
     return redirect(url_for("directories.list_directory", dirpath=parent_dir))
+
 
 # File Viewing
 @bp.route("/file/<path:filepath>", methods=["GET"])
@@ -217,6 +233,16 @@ def serve_file(filepath):
     if mime_type is None:
         mime_type = "application/octet-stream"
     return send_file(full_path, mimetype=mime_type, as_attachment=False)
+
+@bp.route('/test_create_folder/')
+def test_create_folder():
+    test_folder = os.path.join(BASE_PATH, "testfolder")
+    try:
+        os.makedirs(test_folder, exist_ok=True)
+        return f"Test folder created at {test_folder}"
+    except Exception as e:
+        return f"Failed to create test folder: {e}"
+
 
 # Error Handling Pages 
 # NNL
@@ -264,17 +290,8 @@ def bad_gateway(e):
 @bp.app_errorhandler(504)
 def gateway_timeout(e):
     return render_template("504.html"), 504
-<<<<<<< HEAD
-@bp.app_errorhandler(510)
-def Gone(e):
-    return render_template("510.html"), 510
-@bp.app_errorhandler(409)
-def Files_or_Foler_is_exit(e):
-    return render_template("409.html"), 409
-=======
 
 # Handle 510 Not Extended / Gone errors
 @bp.app_errorhandler(NotExtended)
 def not_extended(e):
     return "Not Extended", 510
->>>>>>> 908988c95b3752a03aef2b4e4b47aec9102cc193
