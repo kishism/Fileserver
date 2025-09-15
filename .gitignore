@@ -12,3 +12,9 @@ pycache/
 .idea/
 
 Thumbs.db
+# Ignore Python cache and virtual environment
+__pycache__/
+ftp/__pycache__/
+ftp/routes/__pycache__/
+*.pyc
+.venv/
