@@ -3,7 +3,7 @@
 from flask import render_template, make_response, request
 import datetime
 
-def hypermedia_directory_response(dirpath, directories, files):
+def hypermedia_response(dirpath, directories, files):
     """
     Prepare a hypermedia HTML response for a directory.
     Automatically selects 'root.html' for root, 'directory.html' for others.
@@ -34,6 +34,43 @@ def hypermedia_directory_response(dirpath, directories, files):
         links.append(f'</>; rel="parent"')
 
     # Join all links and set the Link header
+    response.headers["Link"] = ", ".join(links)
+
+    return response
+
+def hypermedia_file_response(filepath, filename, mime_type, size):
+    """
+    Prepare a hypermedia HTML response for a file view.
+    Renders 'file.html' with file metadata.
+    """
+    # Render the HTML content with file metadata
+    html = render_template(
+        "file.html",
+        filepath=filepath,
+        filename=filename,
+        mime_type=mime_type,
+        size=size,
+    )
+
+    # Build Flask response with hypermedia headers
+    response = make_response(html)
+    response.headers["Content-Type"] = "text/html"
+    response.headers["Last-Modified"] = datetime.datetime.utcnow().isoformat() + "Z"
+    response.headers["Allow"] = "GET, PUT, DELETE"
+
+    # Hypermedia links
+    links = []
+
+    # 'self' points to the current file resource
+    links.append(f'<{request.path}>; rel="self"')
+
+    # 'parent' points to the directory containing the file
+    parent_path = "/".join(filepath.split("/")[:-1])
+    if parent_path == "":
+        parent_path = "/"
+    links.append(f'</{parent_path}>; rel="parent"')
+
+    # Set Link header with all links
     response.headers["Link"] = ", ".join(links)
 
     return response

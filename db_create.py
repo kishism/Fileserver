@@ -29,17 +29,9 @@ def setup_database():
     )
     """)
 
-    # Insert root-level directories
-    cursor.execute("INSERT INTO directories (name) VALUES (?)", ("documents",))
-    cursor.execute("INSERT INTO directories (name) VALUES (?)", ("images",))
-
-    # Insert root-level files
-    cursor.execute("INSERT INTO files (name) VALUES (?)", ("readme.txt",))
-    cursor.execute("INSERT INTO files (name) VALUES (?)", ("cat.png",))
-
     conn.commit()
     conn.close()
-    print(f"{DB_PATH} created with initial directories and files.")
+    print(f"{DB_PATH} created.")
 
 if __name__ == "__main__":
     setup_database()

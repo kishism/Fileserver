@@ -1,6 +1,10 @@
 # ftp/models.py
 import sqlite3
 from flask import current_app
+import os 
+from werkzeug.utils import secure_filename
+
+UPLOAD_BASE_PATH = "C:/ftp-server"
 
 def get_db_connection():
     """Return a SQLite connection with row factory."""
@@ -51,37 +55,69 @@ def get_directory_contents(path=None):
     conn.close()
     return directories, files
 
+def ensure_directory_exists(path):
+    """
+    For implicit root directory (parent_id IS NULL), return None for root.
+    Only create and return IDs for non-root directories.
+    """
+    if not path or path == "root":
+        # Root is implicit, so return None
+        return None
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    dir_id = None
+    parts = path.strip("/").split("/")
+
+    for part in parts:
+        cursor.execute(
+            "SELECT id FROM directories WHERE name = ? AND parent_id IS ?",
+            (part, dir_id)
+        )
+        row = cursor.fetchone()
+        if row:
+            dir_id = row["id"]
+        else:
+            cursor.execute(
+                "INSERT INTO directories (name, parent_id) VALUES (?, ?)",
+                (part, dir_id)
+            )
+            dir_id = cursor.lastrowid
+            conn.commit()
+
+    conn.close()
+    return dir_id
+
 
 def save_file_to_directory(file, dirpath):
     """
     Save uploaded file into the database under the given directory.
     """
+    dir_id = ensure_directory_exists(dirpath or "root")
+    
+    # Read file content for BLOB saving
+    file_content = file.read()
+    
+    # Reset file stream position to beginning to save physically after reading for blob
+    file.stream.seek(0)
+    
+    # Save metadata and blob content in DB
     conn = sqlite3.connect(current_app.config["DATABASE"])
     cursor = conn.cursor()
-
-    if dirpath == "root" or not dirpath:
-        dir_id = None
-    else:
-        parts = dirpath.strip("/").split("/")
-        dir_id = None
-        for part in parts:
-            cursor.execute(
-                "SELECT id FROM directories WHERE name=? AND parent_id IS ?",
-                (part, dir_id)
-            )
-            row = cursor.fetchone()
-            if row is None:
-                conn.close()
-                raise ValueError(f"Directory {dirpath} does not exist")
-            dir_id = row[0]
-
-    # Insert file metadata
     cursor.execute(
-        "INSERT INTO files (name, mime_type, directory_id) VALUES (?, ?, ?)",
-        (file.filename, file.mimetype, dir_id)
+        "INSERT INTO files (name, mime_type, content, directory_id) VALUES (?, ?, ?, ?)",
+        (file.filename, file.mimetype, file_content, dir_id)
     )
     conn.commit()
     conn.close()
+
+    # Physical file saving part:
+    physical_dir = UPLOAD_BASE_PATH if not dirpath or dirpath == "root" else os.path.join(UPLOAD_BASE_PATH, dirpath)
+    os.makedirs(physical_dir, exist_ok=True)
+    filename = secure_filename(file.filename)
+    physical_file_path = os.path.join(physical_dir, filename)
+    file.save(physical_file_path)
 
 def save_file_from_folder(file, path):
     """
@@ -109,79 +145,130 @@ def save_file_from_folder(file, path):
     conn.commit()
     conn.close()
 
-
-def ensure_directory_exists(path):
+def create_directory_in_db(parent_path, new_dir_path):
     """
-    Ensure that a directory path exists in the DB.
-    Creates any missing directories along the path.
-    Returns the final directory_id.
+    Creates directories in the database, auto-creating any missing intermediate folders.
+    parent_path: path relative to root ("" = root)
+    new_dir_path: can be nested, e.g., "folder/subfolder"
     """
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # Ensure table exists
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS directories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        parent_id INTEGER,
+        FOREIGN KEY(parent_id) REFERENCES directories(id) ON DELETE CASCADE
+    );
+    """)
+    conn.commit()
 
     # Start from root
-    dir_id = None
-    parts = path.strip("/").split("/")
+    parent_id = None if not parent_path else None
+    if parent_path:
+        # Resolve parent_path
+        parts = parent_path.strip("/").split("/")
+        for part in parts:
+            if parent_id is None:
+                cursor.execute(
+                    "SELECT id FROM directories WHERE name=? AND parent_id IS NULL",
+                    (part,)
+                )
+            else:
+                cursor.execute(
+                    "SELECT id FROM directories WHERE name=? AND parent_id=?",
+                    (part, parent_id)
+                )
+            row = cursor.fetchone()
+            if row is None:
+                # Auto-create intermediate folder
+                cursor.execute(
+                    "INSERT INTO directories (name, parent_id) VALUES (?, ?)",
+                    (part, parent_id)
+                )
+                conn.commit()
+                cursor.execute(
+                    "SELECT id FROM directories WHERE name=? AND parent_id=?",
+                    (part, parent_id)
+                )
+                row = cursor.fetchone()
+            parent_id = row["id"]
 
-    for part in parts:
-        cursor.execute(
-            "SELECT id FROM directories WHERE name = ? AND parent_id IS ?",
-            (part, dir_id)
-        )
+    # Create nested folders in new_dir_path
+    for part in new_dir_path.strip("/").split("/"):
+        if parent_id is None:
+            cursor.execute(
+                "SELECT id FROM directories WHERE name=? AND parent_id IS NULL",
+                (part,)
+            )
+        else:
+            cursor.execute(
+                "SELECT id FROM directories WHERE name=? AND parent_id=?",
+                (part, parent_id)
+            )
         row = cursor.fetchone()
         if row:
-            dir_id = row["id"]
-        else:
-            # Insert new directory
-            cursor.execute(
-                "INSERT INTO directories (name, parent_id) VALUES (?, ?)",
-                (part, dir_id)
-            )
-            dir_id = cursor.lastrowid
-            conn.commit()
+            parent_id = row["id"]
+            continue
+        # Insert folder
+        cursor.execute(
+            "INSERT INTO directories (name, parent_id) VALUES (?, ?)",
+            (part, parent_id)
+        )
+        conn.commit()
+        cursor.execute(
+            "SELECT id FROM directories WHERE name=? AND parent_id=?",
+            (part, parent_id)
+        )
+        row = cursor.fetchone()
+        parent_id = row["id"]
 
     conn.close()
-    return dir_id
 
-def create_directory_in_db(parent_path, new_dir_name):
+
+def get_file_from_db(filepath):
     """
-    Creates a new directory in the database under parent_path.
-    Raises ValueError if directory already exists.
+    Retrieve file bytes and MIME type from DB by full path.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Determine parent_id
-    if parent_path is None or parent_path == "root" or parent_path == "":
-        parent_id = None
-    else:
-        parts = parent_path.strip("/").split("/")
-        parent_id = None
-        for part in parts:
-            cursor.execute(
-                "SELECT id FROM directories WHERE name=? AND parent_id IS ?",
-                (part, parent_id)
-            )
-            row = cursor.fetchone()
-            if row is None:
-                conn.close()
-                raise ValueError(f"Parent directory {parent_path} does not exist")
-            parent_id = row["id"]
+    # Split into directory + filename
+    parts = filepath.strip("/").split("/")
+    filename = parts[-1]
+    dir_path_parts = parts[:-1]
 
-    # Check if directory already exists
-    cursor.execute(
-        "SELECT 1 FROM directories WHERE name=? AND parent_id IS ?",
-        (new_dir_name, parent_id)
-    )
-    if cursor.fetchone():
-        conn.close()
-        raise ValueError(f"Directory {new_dir_name} already exists in {parent_path}")
+    # print("DEBUG: filename =", filename)
+    # print("DEBUG: dir_path_parts =", dir_path_parts)
 
-    # Insert new directory
+    parent_id = None
+    for part in dir_path_parts:
+        cursor.execute(
+            "SELECT id FROM directories WHERE name=? AND parent_id IS ?",
+            (part, parent_id)
+        )
+        row = cursor.fetchone()
+        # print("DEBUG: checking directory part =", part, "found row:", row)
+        if row is None:
+            conn.close()
+            return None, None
+        parent_id = row["id"]
+
     cursor.execute(
-        "INSERT INTO directories (name, parent_id) VALUES (?, ?)",
-        (new_dir_name, parent_id)
+        "SELECT content, mime_type FROM files WHERE name=? AND directory_id IS ?",
+        (filename, parent_id)
     )
+<<<<<<< HEAD
     
     conn.commit()
+=======
+    row = cursor.fetchone()
+    # print("DEBUG: final file row:", row)
+>>>>>>> 908988c95b3752a03aef2b4e4b47aec9102cc193
     conn.close()
+    if row:
+        # print("DEBUG: returning content type =", type(row["content"]))
+        return row["content"], row["mime_type"]
+    return None, None
