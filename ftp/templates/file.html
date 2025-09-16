@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="file-breadcrumb">
+<!-- 
+
+  `Breadcrumb is currently broken`
+
+  <div class="file-breadcrumb">
   {% set parts = dirpath.split('/') if dirpath else ['/'] %}
   {% set current_path = '' %}
   
@@ -24,8 +28,7 @@
       <span class="breadcrumb-separator">/</span>
     {% endif %}
   {% endfor %}
-</div>
-
+</div> -->
 <h1 class="file-title">{{ filename }}</h1>
 
 <div class="file-actions">

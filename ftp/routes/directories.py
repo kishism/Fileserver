@@ -28,15 +28,24 @@ bp = Blueprint("directories", __name__)
 # Syncing with filesystem
 def scan_physical_directory(dirpath):
     abs_path = os.path.join(BASE_PATH, dirpath) if dirpath else BASE_PATH
-    if not os.path.exists(abs_path) or not os.path.isdir(abs_path):
+    print(f"Scanning physical directory at: '{abs_path}'")
+
+    if not os.path.exists(abs_path):
+        print(f"Path does not exist: '{abs_path}'")
+        return None, None
+    if not os.path.isdir(abs_path):
+        print(f"Path is not a directory: '{abs_path}'")
         return None, None
 
     try:
         entries = os.listdir(abs_path)
+        print(f"Found {len(entries)} entries in directory")
     except PermissionError:
+        print(f"Permission denied when accessing: '{abs_path}'")
         return None, None
 
     directories = [d for d in entries if os.path.isdir(os.path.join(abs_path, d))]
+    print(f"Subdirectories found: {directories}")
     files = []
     for f in entries:
         full_file_path = os.path.join(abs_path, f)
@@ -48,20 +57,25 @@ def scan_physical_directory(dirpath):
 # List root directory
 @bp.route("/", methods=["GET"])
 def list_root_directory():
+    print("Listing contents of root directory")
     directories, files = scan_physical_directory("")
     if directories is None and files is None:
+        print("Root directory not found or inaccessible, returning 404")
         abort(404)
     
+    print(f"Root directory contains {len(directories)} directories and {len(files)} files")
     return hypermedia_response(dirpath="root", directories=directories, files=files)
 
 # List subdirectories
 @bp.route("/<path:dirpath>/", methods=["GET"])
 def list_directory(dirpath):
+    print("Listing contents of a subdirectory")
     directories, files = scan_physical_directory(dirpath)
     if directories is None and files is None:
+        print("Subdirectory not found or inaccessible, returning 404")
         abort(404)
 
-    print(f"Serving directory: {dirpath}")
+    print(f"Subdirectory contains {len(directories)} directories and {len(files)} files")
     return hypermedia_response(dirpath=dirpath or "root", directories=directories, files=files)
 
 @bp.route("/upload", defaults={"dirpath": None}, methods=["POST"])
@@ -69,17 +83,21 @@ def list_directory(dirpath):
 def upload_file(dirpath):
     file = request.files.get("file")
     if not file or file.filename == "":
+        print("Upload failed: No file provided.")
         abort(400, description="No file provided")
     
     # Secure the filename to avoid directory traversal attacks etc
     filename = secure_filename(file.filename)
+    print(f"Uploading file '{filename}' to directory '{dirpath or 'root'}'")
     
     # Determine directory path on disk
     actual_dirpath = dirpath or ""
     physical_dir = os.path.join(UPLOAD_BASE_PATH, actual_dirpath)
     try:
         os.makedirs(physical_dir, exist_ok=True)  # Ensure target dir exists
+        print(f"Ensured upload directory exists: '{physical_dir}'")
     except Exception as e:
+        print(f"Failed to create upload directory '{physical_dir}': {e}")
         flash(f"Failed to create upload directory: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=actual_dirpath))
     
@@ -87,7 +105,9 @@ def upload_file(dirpath):
     physical_file_path = os.path.join(physical_dir, filename)
     try:
         file.save(physical_file_path)  # Save uploaded file
+        print(f"File saved physically to '{physical_file_path}'")
     except Exception as e:
+        print(f"Failed to save uploaded file '{filename}': {e}")
         flash(f"Failed to save uploaded file: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=actual_dirpath))
     
@@ -95,11 +115,14 @@ def upload_file(dirpath):
     mime_type, _ = mimetypes.guess_type(physical_file_path)
     if not mime_type:
         mime_type = file.mimetype or "application/octet-stream"
+    print(f"Guessed MIME type: '{mime_type}'")
     
     # Redirect back to the directory listing page
     if not actual_dirpath:
+        print("Redirecting to root directory listing after upload")
         return redirect(url_for("directories.list_root_directory"))
     else:
+        print(f"Redirecting to directory listing '{actual_dirpath}' after upload")
         return redirect(url_for("directories.list_directory", dirpath=actual_dirpath))
 
 @bp.route("/upload_folder", methods=["POST"])
@@ -111,31 +134,47 @@ def upload_folder(dirpath=None):
     """
     uploaded_files = request.files.getlist("files")
     if not uploaded_files:
+        print("Upload failed: No files provided")
         abort(400, description="No files provided")
 
     actual_dirpath = dirpath if dirpath else ""
+    print(f"Uploading folder contents to directory: '{actual_dirpath or 'root'}'")
     saved_files = []
 
     for file in uploaded_files:
         # Extract relative path; webkitRelativePath is supported by some browsers
         rel_path = getattr(file, "webkitRelativePath", file.filename)
+        print(f"Processing file with relative path: '{rel_path}'")
 
         # Normalize path delimiter to OS format and prepend parent dir if any
         rel_path = rel_path.replace("/", os.path.sep)
         full_path = os.path.normpath(os.path.join(BASE_PATH, actual_dirpath, rel_path))
+        print(f"Resolved full file path: '{full_path}'")
 
         # Ensure parent directories exist
         parent_dir = os.path.dirname(full_path)
-        os.makedirs(parent_dir, exist_ok=True)
-
-        # Save each file to the filesystem
-        file.save(full_path)
-        saved_files.append(full_path)
+        try:
+            os.makedirs(parent_dir, exist_ok=True)
+            print(f"Ensured directory exists: '{parent_dir}'")
+        except Exception as e:
+            print(f"Failed to create directory '{parent_dir}': {e}")
+            flash(f"Failed to create directory: {e}", "error")
+            return redirect(url_for("directories.list_directory", dirpath=actual_dirpath or ""))
+           
+        try:
+            file.save(full_path)
+            print(f"Saved file to '{full_path}'")
+            saved_files.append(full_path)
+        except Exception as e:
+            print(f"Failed to save file '{full_path}': {e}")
+            flash(f"Failed to save file: {e}", "error")
+            return redirect(url_for("directories.list_directory", dirpath=actual_dirpath or ""))
 
         # Optionally, update database with file metadata here
         # e.g. create_file_in_db(rel_path, actual_dirpath, ...)
 
     flash(f"Uploaded {len(saved_files)} files successfully.", "success")
+    print(f"Uploaded {len(saved_files)} files successfully to '{actual_dirpath or 'root'}'")
     return redirect(url_for("directories.list_directory", dirpath=actual_dirpath or ""))
 
 # Create Directory 
@@ -209,13 +248,18 @@ def create_directory():
 @bp.route("/file/<path:filepath>", methods=["GET"])
 def view_file(filepath):
     full_path = os.path.join(BASE_PATH, filepath)
+    print(f"Requested file path: '{filepath}', resolved full path: '{full_path}'")
+
     if not os.path.isfile(full_path):
+        print(f"File not found: '{full_path}', returning 404")
         abort(404)
+
     mime_type, _ = mimetypes.guess_type(full_path)
     if mime_type is None:
         mime_type = "application/octet-stream"
     file_size = os.path.getsize(full_path)
 
+    print(f"Serving file '{filepath}' with MIME type '{mime_type}' and size {file_size} bytes")
     return hypermedia_file_response(
         filepath=filepath,
         filename=os.path.basename(full_path),
@@ -227,13 +271,20 @@ def view_file(filepath):
 @bp.route("/raw/<path:filepath>", methods=["GET"])
 def serve_file(filepath):
     full_path = os.path.join(BASE_PATH, filepath)
+    print(f"Serving raw file request for: '{filepath}', resolved full path: '{full_path}'")
+
     if not os.path.isfile(full_path):
+        print(f"File not found at path: '{full_path}', returning 404")
         abort(404)
+
     mime_type, _ = mimetypes.guess_type(full_path)
     if mime_type is None:
         mime_type = "application/octet-stream"
+    print(f"Determined MIME type: '{mime_type}'")
+    
     return send_file(full_path, mimetype=mime_type, as_attachment=False)
 
+# debug route for file creation
 @bp.route('/test_create_folder/')
 def test_create_folder():
     test_folder = os.path.join(BASE_PATH, "testfolder")
