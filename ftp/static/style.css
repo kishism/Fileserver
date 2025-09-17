@@ -45,20 +45,59 @@ body {
 	margin: 1rem 0;
 }
 
-.file-list li a:hover {
+.file-list li {
+	margin-bottom: 0.25rem;
+}
+
+
+.file-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	/* Push delete button to far right */
+	padding: 0.35rem 0.5rem;
+	border-radius: 4px;
+	transition: background 0.2s;
+}
+
+.file-item a {
+	display: flex;
+	align-items: center;
+	text-decoration: none;
+	color: #212529;
+	flex-grow: 1;
+	/* Make link take available space */
+}
+
+.file-item a:hover {
 	background-color: #e9ecef;
-	cursor: pointer;
 	color: #2d6cdf;
 }
 
-.file-list li a {
-	display: flex;
-	align-items: center;
-	padding: 0.35rem 0.5rem;
+.file-item .file-icon {
+	margin-right: 0.5rem;
+}
+
+
+.file-item .icon-btn.delete-btn {
+	flex-shrink: 0;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 1.1rem;
+	padding: 0;
+	margin-left: 0.5rem;
+	transition: color 0.2s, transform 0.1s;
+}
+
+.file-item .icon-btn.delete-btn:hover {
+	color: red;
+	transform: translateY(-1px);
+}
+
+.file-item:hover {
+	background-color: #f1f3f5;
 	border-radius: 4px;
-	text-decoration: none;
-	color: #212529;
-	transition: background 0.2s, color 0.2s;
 }
 
 .icon {
@@ -124,6 +163,8 @@ body {
 }
 
 .icon-btn {
+	position: relative;
+	/* needed for tooltip */
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -134,6 +175,34 @@ body {
 	border-radius: 6px;
 	cursor: pointer;
 	transition: background 0.2s, transform 0.1s;
+}
+
+/* Tooltip text */
+.icon-btn::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	bottom: 100%;
+	/* above the button */
+	left: 50%;
+	transform: translateX(-50%);
+	background-color: #333;
+	color: #fff;
+	padding: 0.35rem 0.6rem;
+	font-size: 0.75rem;
+	border-radius: 4px;
+	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.2s, transform 0.2s;
+	z-index: 10;
+}
+
+
+/* Show tooltip on hover */
+.icon-btn:hover::after,
+.icon-btn:hover::before {
+	opacity: 1;
+	transform: translateX(-50%) translateY(-4px);
 }
 
 .icon-btn:hover {
@@ -183,6 +252,14 @@ body {
 	background-image: url('/static/icons/folder-3.svg');
 }
 
+.delete-folder-icon {
+	background-image: url('/static/icons/delete.svg');
+}
+
+.delete-file-icon {
+	background-image: url('/static/icons/delete.svg');
+}
+
 /* Specific Icons */
 .file-list .folder-icon {
 	background-image: url('/static/icons/folder-32-regular.svg');
@@ -199,123 +276,216 @@ body {
 /* For file.html */
 
 .file-viewer {
-    max-width: 900px;
-    margin-left: 1rem;
-    padding: 1rem;
-    background: #ffffff;
-    border-radius: 6px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-  
-  /* Breadcrumb bar */
-  .file-breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    margin-bottom: 1rem;
-    font-size: 0.95rem;
-    color: #495057;
-    flex-wrap: wrap;
-  }
-  
-  .breadcrumb-link {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    color: #2d3436;
-    font-weight: 500;
-    transition: color 0.2s;
-  }
-  
-  .breadcrumb-link:hover {
-    color: #2d6cdf;
-  }
-  
-  .breadcrumb-icon {
-    width: 20px;
-    height: 20px;
-    margin-right: 0.2rem;
-  }
-  
-  .breadcrumb-separator {
-    margin: 0 0.2rem;
-    color: #adb5bd;
-  }
-  /* File title */
-  .file-title {
-    font-size: 1.8rem;
-    margin-bottom: 0.8rem;
-    color: #2d3436;
-  }
-  
-  /* File actions buttons */
-  .file-actions {
-    margin-bottom: 1rem;
-    display: flex;
-    gap: 0.5rem;
-  }
-  
-  .file-actions .btn {
-    padding: 0.4rem 0.8rem;
-    background: #f1f3f5;
-    border: 1px solid #ced4da;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background 0.2s, transform 0.1s;
-  }
-  
-  .file-actions .btn:hover {
-    background: #e9ecef;
-    transform: translateY(-1px);
-  }
-  
-  /* Image preview */
-  .file-preview {
-    display: flex;
-    justify-content: center;
-    margin: 1rem 0;
-  }
-  
-  .file-preview img {
-    max-width: 100%;
-    max-height: 600px;
-    border-radius: 6px;
-    object-fit: contain;
-    transition: transform 0.2s ease-in-out;
-  }
-  
-  .file-preview img:hover {
-    transform: scale(1.02);
-  }
-  
-  /* Metadata table */
-  .file-meta {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.95rem;
-    color: #495057;
-    margin-top: 1rem;
-    background: #fafbfc;
-    border-radius: 6px;
-    overflow: hidden;
-  }
-  
-  .file-meta th,
-  .file-meta td {
-    text-align: left;
-    padding: 0.5rem 0.7rem;
-  }
-  
-  .file-meta th {
-    width: 130px;
-    font-weight: 600;
-    background-color: #f1f3f5;
-    color: #2d3436;
-    border-right: 1px solid #dee2e6;
-  }
-  
-  .file-meta td {
-    background-color: #ffffff;
-  }
-  
+	max-width: 900px;
+	margin-left: 1rem;
+	padding: 1rem;
+	background: #ffffff;
+	border-radius: 6px;
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Breadcrumb bar */
+.file-breadcrumb {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+	margin-bottom: 1rem;
+	font-size: 0.95rem;
+	color: #495057;
+	flex-wrap: wrap;
+}
+
+.breadcrumb-link {
+	display: flex;
+	align-items: center;
+	text-decoration: none;
+	color: #2d3436;
+	font-weight: 500;
+	transition: color 0.2s;
+}
+
+.breadcrumb-link:hover {
+	color: #2d6cdf;
+}
+
+.breadcrumb-icon {
+	width: 20px;
+	height: 20px;
+	margin-right: 0.2rem;
+}
+
+.breadcrumb-separator {
+	margin: 0 0.2rem;
+	color: #adb5bd;
+}
+
+/* File title */
+.file-title {
+	font-size: 1.8rem;
+	margin-bottom: 0.8rem;
+	color: #2d3436;
+}
+
+/* File actions buttons */
+.file-actions {
+	margin-bottom: 1rem;
+	display: flex;
+	gap: 0.5rem;
+}
+
+.file-actions .btn {
+	padding: 0.4rem 0.8rem;
+	background: #f1f3f5;
+	border: 1px solid #ced4da;
+	border-radius: 5px;
+	cursor: pointer;
+	font-size: 0.9rem;
+	transition: background 0.2s, transform 0.1s;
+}
+
+.file-actions .btn:hover {
+	background: #e9ecef;
+	transform: translateY(-1px);
+}
+
+/* Image preview */
+.file-preview {
+	display: flex;
+	justify-content: center;
+	margin: 1rem 0;
+}
+
+.file-preview img {
+	max-width: 100%;
+	max-height: 600px;
+	border-radius: 6px;
+	object-fit: contain;
+	transition: transform 0.2s ease-in-out;
+}
+
+.file-preview img:hover {
+	transform: scale(1.02);
+}
+
+/* Metadata table */
+.file-meta {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95rem;
+	color: #495057;
+	margin-top: 1rem;
+	background: #fafbfc;
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.file-meta th,
+.file-meta td {
+	text-align: left;
+	padding: 0.5rem 0.7rem;
+}
+
+.file-meta th {
+	width: 130px;
+	font-weight: 600;
+	background-color: #f1f3f5;
+	color: #2d3436;
+	border-right: 1px solid #dee2e6;
+}
+
+.file-meta td {
+	background-color: #ffffff;
+}
+
+/* File deletion confrimation box */
+.modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 9999;
+}
+
+.modal-content {
+	background: #fff;
+	padding: 1.5rem;
+	border-radius: 8px;
+	width: 300px;
+	text-align: center;
+}
+
+.modal-buttons {
+	margin-top: 1rem;
+	display: flex;
+	justify-content: space-between;
+}
+
+.btn {
+	padding: 0.5rem 1rem;
+	border: none;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.btn-danger {
+	background: #e74c3c;
+	color: #fff;
+}
+
+.btn-cancel {
+	background: #bdc3c7;
+}
+
+.hover-card-container {
+	position: relative;
+	display: inline-block;
+}
+
+/* Rich tooltip */
+.hover-card {
+	position: absolute;
+	top: 110%;
+	/* below button */
+	left: 50%;
+	transform: translateX(-50%);
+	width: 240px;
+	background-color: #fff;
+	border: 1px solid #ccc;
+	border-radius: 6px;
+	padding: 0.8rem;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.2s;
+	font-size: 0.85rem;
+	z-index: 100;
+}
+
+.hover-card h4 {
+	margin: 0 0 0.4rem 0;
+	font-size: 0.95rem;
+	color: #2d3436;
+}
+
+.hover-card p {
+	margin: 0.2rem 0;
+	color: #495057;
+}
+
+.hover-card.delete-tooltip {
+	background-color: #fff5f5;
+}
+
+.hover-card.delete-tooltip h4 {
+	color: #c0392b;
+	font-weight: 600;
+	margin-bottom: 0.3rem;
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}

@@ -287,14 +287,14 @@ def delete_file_from_db_and_disk(filepath):
         raise ValueError("Cannot delete root")
 
     physical_path = os.path.join(UPLOAD_BASE_PATH, filepath)
-    print(f"[DEBUG] Deleting file '{filepath}' at physical path '{physical_path}'")
+    print(f"Deleting file '{filepath}' at physical path '{physical_path}'")
 
     # Delete physical file
     if os.path.exists(physical_path):
         os.remove(physical_path)
-        print(f"[DEBUG] Physical file deleted: {physical_path}")
+        print(f"Physical file deleted: {physical_path}")
     else:
-        print(f"[DEBUG] Physical file does not exist: {physical_path}")
+        print(f"Physical file does not exist: {physical_path}")
 
     # Delete from DB
     parts = filepath.strip("/").split("/")
@@ -317,7 +317,7 @@ def delete_file_from_db_and_disk(filepath):
             "DELETE FROM files WHERE name=? AND directory_id IS ?",
             (filename, parent_id)
         )
-        print(f"[DEBUG] Deleted file '{filename}' from DB")
+        print(f"Deleted file '{filename}' from DB")
 
 def delete_directory_from_db_and_disk(dirpath):
     if dirpath.startswith("root/"):
@@ -326,14 +326,14 @@ def delete_directory_from_db_and_disk(dirpath):
         raise ValueError("Cannot delete root directory")
 
     physical_path = os.path.join(UPLOAD_BASE_PATH, dirpath)
-    print(f"[DEBUG] Deleting directory '{dirpath}' at physical path '{physical_path}'")
+    print(f"Deleting directory '{dirpath}' at physical path '{physical_path}'")
 
     # Delete physical directory recursively
     if os.path.exists(physical_path):
         shutil.rmtree(physical_path)
-        print(f"[DEBUG] Physical directory deleted: {physical_path}")
+        print(f"Physical directory deleted: {physical_path}")
     else:
-        print(f"[DEBUG] Physical directory does not exist: {physical_path}")
+        print(f"Physical directory does not exist: {physical_path}")
 
     # Delete from DB recursively using a single connection
     with get_db_connection() as conn:
@@ -356,7 +356,7 @@ def delete_directory_from_db_and_disk(dirpath):
         def delete_dir_recursive(cursor, parent_id):
             # Delete files in this directory
             cursor.execute("DELETE FROM files WHERE directory_id=?", (parent_id,))
-            print(f"[DEBUG] Deleted files in directory ID {parent_id}")
+            print(f"Deleted files in directory ID {parent_id}")
 
             # Find subdirectories
             cursor.execute("SELECT id FROM directories WHERE parent_id=?", (parent_id,))
@@ -366,7 +366,7 @@ def delete_directory_from_db_and_disk(dirpath):
 
             # Delete the directory itself
             cursor.execute("DELETE FROM directories WHERE id=?", (parent_id,))
-            print(f"[DEBUG] Deleted directory ID {parent_id}")
+            print(f"Deleted directory ID {parent_id}")
 
         delete_dir_recursive(cursor, parent_id)
-        print(f"[DEBUG] Finished deleting directory '{dirpath}' and all nested contents")
+        print(f"Finished deleting directory '{dirpath}' and all nested contents")

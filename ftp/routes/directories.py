@@ -11,6 +11,10 @@ from ftp.routes.hypermedia import hypermedia_response, hypermedia_file_response
 import os 
 from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
+from colorama import init, Fore, Style
+
+# Initialize Colorama
+init(autoreset=True)
 
 BASE_PATH = "C:/ftp-server"
 
@@ -28,103 +32,108 @@ bp = Blueprint("directories", __name__)
 # Syncing with filesystem
 def scan_physical_directory(dirpath):
     abs_path = os.path.join(BASE_PATH, dirpath) if dirpath else BASE_PATH
-    print(f"Scanning physical directory at: '{abs_path}'")
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Scanning physical directory at: '{abs_path}'")
 
     if not os.path.exists(abs_path):
-        print(f"Path does not exist: '{abs_path}'")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Path does not exist: '{abs_path}'")
         return None, None
     if not os.path.isdir(abs_path):
-        print(f"Path is not a directory: '{abs_path}'")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Path is not a directory: '{abs_path}'")
         return None, None
 
     try:
         entries = os.listdir(abs_path)
-        print(f"Found {len(entries)} entries in directory")
+        print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Found {len(entries)} entries in directory")
     except PermissionError:
-        print(f"Permission denied when accessing: '{abs_path}'")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Permission denied when accessing: '{abs_path}'")
         return None, None
 
     directories = [d for d in entries if os.path.isdir(os.path.join(abs_path, d))]
-    print(f"Subdirectories found: {directories}")
+    print(f"{Fore.YELLOW}[INFO]{Style.RESET_ALL} Subdirectories found: {directories}")
+
     files = []
     for f in entries:
         full_file_path = os.path.join(abs_path, f)
         if os.path.isfile(full_file_path):
             mime_type, _ = mimetypes.guess_type(full_file_path)
             files.append({"name": f, "mime_type": mime_type or "application/octet-stream"})
+
     return directories, files
 
 # List root directory
 @bp.route("/", methods=["GET"])
 def list_root_directory():
-    print("Listing contents of root directory")
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Listing contents of root directory")
+    
     directories, files = scan_physical_directory("")
     if directories is None and files is None:
-        print("Root directory not found or inaccessible, returning 404")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Root directory not found or inaccessible, returning 404")
         abort(404)
     
-    print(f"Root directory contains {len(directories)} directories and {len(files)} files")
+    print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Root directory contains {len(directories)} directories and {len(files)} files")
     return hypermedia_response(dirpath="root", directories=directories, files=files)
 
 # List subdirectories
 @bp.route("/<path:dirpath>/", methods=["GET"])
 def list_directory(dirpath):
-    print("Listing contents of a subdirectory")
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Listing contents of subdirectory: '{dirpath}'")
+    
     directories, files = scan_physical_directory(dirpath)
     if directories is None and files is None:
-        print("Subdirectory not found or inaccessible, returning 404")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Subdirectory not found or inaccessible, returning 404")
         abort(404)
 
-    print(f"Subdirectory contains {len(directories)} directories and {len(files)} files")
+    print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Subdirectory contains {len(directories)} directories and {len(files)} files")
     return hypermedia_response(dirpath=dirpath or "root", directories=directories, files=files)
 
+# File Upload 
 @bp.route("/upload", defaults={"dirpath": None}, methods=["POST"])
 @bp.route("/<path:dirpath>/upload", methods=["POST"])
 def upload_file(dirpath):
     file = request.files.get("file")
     if not file or file.filename == "":
-        print("Upload failed: No file provided.")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Upload failed: No file provided.")
         abort(400, description="No file provided")
     
-    # Secure the filename to avoid directory traversal attacks etc
+    # Secure the filename to avoid directory traversal attacks
     filename = secure_filename(file.filename)
-    print(f"Uploading file '{filename}' to directory '{dirpath or 'root'}'")
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Uploading file '{filename}' to directory '{dirpath or 'root'}'")
     
     # Determine directory path on disk
     actual_dirpath = dirpath or ""
     physical_dir = os.path.join(UPLOAD_BASE_PATH, actual_dirpath)
     try:
         os.makedirs(physical_dir, exist_ok=True)  # Ensure target dir exists
-        print(f"Ensured upload directory exists: '{physical_dir}'")
+        print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Ensured upload directory exists: '{physical_dir}'")
     except Exception as e:
-        print(f"Failed to create upload directory '{physical_dir}': {e}")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to create upload directory '{physical_dir}': {e}")
         flash(f"Failed to create upload directory: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=actual_dirpath))
     
     # Save file physically on disk
     physical_file_path = os.path.join(physical_dir, filename)
     try:
-        file.save(physical_file_path)  # Save uploaded file
-        print(f"File saved physically to '{physical_file_path}'")
+        file.save(physical_file_path)
+        print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} File saved physically to '{physical_file_path}'")
     except Exception as e:
-        print(f"Failed to save uploaded file '{filename}': {e}")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to save uploaded file '{filename}': {e}")
         flash(f"Failed to save uploaded file: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=actual_dirpath))
     
-    # Guess mime type from the physical file for metadata storage
+    # Guess MIME type for metadata
     mime_type, _ = mimetypes.guess_type(physical_file_path)
-    if not mime_type:
-        mime_type = file.mimetype or "application/octet-stream"
-    print(f"Guessed MIME type: '{mime_type}'")
+    mime_type = mime_type or file.mimetype or "application/octet-stream"
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Guessed MIME type: '{mime_type}'")
     
-    # Redirect back to the directory listing page
+    # Redirect back to directory listing
     if not actual_dirpath:
-        print("Redirecting to root directory listing after upload")
+        print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Redirecting to root directory listing after upload")
         return redirect(url_for("directories.list_root_directory"))
     else:
-        print(f"Redirecting to directory listing '{actual_dirpath}' after upload")
+        print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Redirecting to directory listing '{actual_dirpath}' after upload")
         return redirect(url_for("directories.list_directory", dirpath=actual_dirpath))
 
+# Folder Upload
 @bp.route("/upload_folder", methods=["POST"])
 @bp.route("/<path:dirpath>/upload_folder", methods=["POST"])
 def upload_folder(dirpath=None):
@@ -134,47 +143,48 @@ def upload_folder(dirpath=None):
     """
     uploaded_files = request.files.getlist("files")
     if not uploaded_files:
-        print("Upload failed: No files provided")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Upload failed: No files provided")
         abort(400, description="No files provided")
 
-    actual_dirpath = dirpath if dirpath else ""
-    print(f"Uploading folder contents to directory: '{actual_dirpath or 'root'}'")
+    actual_dirpath = dirpath or ""
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Uploading folder contents to directory: '{actual_dirpath or 'root'}'")
     saved_files = []
 
     for file in uploaded_files:
         # Extract relative path; webkitRelativePath is supported by some browsers
         rel_path = getattr(file, "webkitRelativePath", file.filename)
-        print(f"Processing file with relative path: '{rel_path}'")
+        print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Processing file with relative path: '{rel_path}'")
 
         # Normalize path delimiter to OS format and prepend parent dir if any
         rel_path = rel_path.replace("/", os.path.sep)
         full_path = os.path.normpath(os.path.join(BASE_PATH, actual_dirpath, rel_path))
-        print(f"Resolved full file path: '{full_path}'")
+        print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Resolved full file path: '{full_path}'")
 
         # Ensure parent directories exist
         parent_dir = os.path.dirname(full_path)
         try:
             os.makedirs(parent_dir, exist_ok=True)
-            print(f"Ensured directory exists: '{parent_dir}'")
+            print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Ensured directory exists: '{parent_dir}'")
         except Exception as e:
-            print(f"Failed to create directory '{parent_dir}': {e}")
+            print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to create directory '{parent_dir}': {e}")
             flash(f"Failed to create directory: {e}", "error")
             return redirect(url_for("directories.list_directory", dirpath=actual_dirpath or ""))
-           
+
+        # Save file physically
         try:
             file.save(full_path)
-            print(f"Saved file to '{full_path}'")
+            print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Saved file to '{full_path}'")
             saved_files.append(full_path)
         except Exception as e:
-            print(f"Failed to save file '{full_path}': {e}")
+            print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to save file '{full_path}': {e}")
             flash(f"Failed to save file: {e}", "error")
             return redirect(url_for("directories.list_directory", dirpath=actual_dirpath or ""))
 
-        # Optionally, update database with file metadata here
-        # e.g. create_file_in_db(rel_path, actual_dirpath, ...)
+        # Optionally update database with file metadata
+        # e.g., create_file_in_db(rel_path, actual_dirpath, ...)
 
     flash(f"Uploaded {len(saved_files)} files successfully.", "success")
-    print(f"Uploaded {len(saved_files)} files successfully to '{actual_dirpath or 'root'}'")
+    print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Uploaded {len(saved_files)} files successfully to '{actual_dirpath or 'root'}'")
     return redirect(url_for("directories.list_directory", dirpath=actual_dirpath or ""))
 
 # Create Directory 
@@ -183,15 +193,15 @@ def create_directory():
     parent_dir = request.form.get("parent_dir") or ""  # "" means root
     new_dir_name = request.form.get("dirname")
 
-    print(f"Received parent_dir: '{parent_dir}'")
-    print(f"New directory name: '{new_dir_name}'")
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Received parent_dir: '{parent_dir}'")
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} New directory name: '{new_dir_name}'")
 
     if not new_dir_name:
         flash("Folder name is required.", "error")
         return redirect(request.referrer or url_for("directories.list_root_directory"))
 
     path_parts = [secure_filename(p) for p in new_dir_name.strip("/").split("/") if p]
-    print(f"path_parts after split and sanitize: {path_parts}")
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} path_parts after split and sanitize: {path_parts}")
 
     if not path_parts:
         flash("Invalid folder name.", "error")
@@ -199,7 +209,7 @@ def create_directory():
 
     physical_parent = os.path.abspath(os.path.join(BASE_PATH, parent_dir))
     physical_folder_path = os.path.abspath(os.path.normpath(os.path.join(physical_parent, *path_parts)))
-    print(f"Resolved physical folder path (absolute): {physical_folder_path}")
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Resolved physical folder path (absolute): {physical_folder_path}")
 
     if not physical_folder_path.startswith(os.path.abspath(BASE_PATH)):
         flash("Invalid folder path.", "error")
@@ -211,32 +221,31 @@ def create_directory():
 
     try:
         os.makedirs(physical_folder_path, exist_ok=False)
-        print(f"Created folder: {physical_folder_path}")
+        print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Created folder: {physical_folder_path}")
     except Exception as e:
-        print(f"Exception during folder creation: {e}")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Exception during folder creation: {e}")
         flash(f"Failed to create folder on disk: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=parent_dir))
 
-    print("Folders currently in parent directory:", os.listdir(physical_parent))
+    print(f"{Fore.YELLOW}[INFO]{Style.RESET_ALL} Folders currently in parent directory: {os.listdir(physical_parent)}")
 
     # Defensive DB insertion with debugging
     try:
-        print(f"Calling create_directory_in_db with parent_dir='{parent_dir}' new_dir='{ '/'.join(path_parts) }'")
+        print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Calling create_directory_in_db with parent_dir='{parent_dir}' new_dir='{ '/'.join(path_parts) }'")
         result = create_directory_in_db(parent_dir, "/".join(path_parts))
 
         if result is None:
             raise ValueError("Database insertion function returned None unexpectedly")
 
-        # Optionally check result contents here if expected to be dict or tuple.
-        print("Database insert successful:", result)
+        print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Database insert successful: {result}")
     except Exception as e:
         # Roll back folder creation on DB insertion failure
-        print(f"Database insertion failed: {e}. Rolling back folder creation...")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Database insertion failed: {e}. Rolling back folder creation...")
         try:
             os.rmdir(physical_folder_path)
-            print(f"Rolled back folder at {physical_folder_path}")
+            print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Rolled back folder at {physical_folder_path}")
         except Exception as rollback_e:
-            print(f"Rollback folder removal failed: {rollback_e}")
+            print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Rollback folder removal failed: {rollback_e}")
         flash(f"Database error: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=parent_dir))
 
@@ -248,10 +257,10 @@ def create_directory():
 @bp.route("/file/<path:filepath>", methods=["GET"])
 def view_file(filepath):
     full_path = os.path.join(BASE_PATH, filepath)
-    print(f"Requested file path: '{filepath}', resolved full path: '{full_path}'")
+    print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Requested file path: '{filepath}', resolved full path: '{full_path}'")
 
     if not os.path.isfile(full_path):
-        print(f"File not found: '{full_path}', returning 404")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} File not found: '{full_path}', returning 404")
         abort(404)
 
     mime_type, _ = mimetypes.guess_type(full_path)
@@ -259,7 +268,7 @@ def view_file(filepath):
         mime_type = "application/octet-stream"
     file_size = os.path.getsize(full_path)
 
-    print(f"Serving file '{filepath}' with MIME type '{mime_type}' and size {file_size} bytes")
+    print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} Serving file '{filepath}' with MIME type '{mime_type}' and size {file_size} bytes")
     return hypermedia_file_response(
         filepath=filepath,
         filename=os.path.basename(full_path),
@@ -271,16 +280,16 @@ def view_file(filepath):
 @bp.route("/raw/<path:filepath>", methods=["GET"])
 def serve_file(filepath):
     full_path = os.path.join(BASE_PATH, filepath)
-    print(f"Serving raw file request for: '{filepath}', resolved full path: '{full_path}'")
+    print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Serving raw file request for: '{filepath}', resolved full path: '{full_path}'")
 
     if not os.path.isfile(full_path):
-        print(f"File not found at path: '{full_path}', returning 404")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} File not found at path: '{full_path}', returning 404")
         abort(404)
 
     mime_type, _ = mimetypes.guess_type(full_path)
     if mime_type is None:
         mime_type = "application/octet-stream"
-    print(f"Determined MIME type: '{mime_type}'")
+    print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} Determined MIME type: '{mime_type}'")
 
     return send_file(full_path, mimetype=mime_type, as_attachment=False)
 
@@ -298,7 +307,7 @@ def test_create_folder():
 @bp.route("/delete_file", methods=["POST"])
 def delete_file():
     filepath = request.form.get("filepath")
-    print(f"[DEBUG] Received filepath: {filepath}")
+    print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Received filepath: {filepath}")
 
     if not filepath:
         flash("File path is required.", "error")
@@ -306,7 +315,7 @@ def delete_file():
 
     # Normalize path
     physical_path = os.path.normpath(os.path.join(UPLOAD_BASE_PATH, filepath))
-    print(f"[DEBUG] Physical path resolved: {physical_path}")
+    print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Physical path resolved: {physical_path}")
 
     if not physical_path.startswith(os.path.abspath(UPLOAD_BASE_PATH)):
         flash("Invalid file path.", "error")
@@ -315,8 +324,9 @@ def delete_file():
     try:
         delete_file_from_db_and_disk(filepath)
         flash(f"File '{filepath}' deleted successfully.", "success")
+        print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} File '{filepath}' deleted successfully.")
     except Exception as e:
-        print(f"[ERROR] Failed to delete file '{filepath}': {e}")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to delete file '{filepath}': {e}")
         flash(f"Failed to delete file '{filepath}': {e}", "error")
 
     return redirect(request.referrer or url_for("directories.list_root_directory"))
@@ -325,7 +335,7 @@ def delete_file():
 @bp.route("/delete_directory", methods=["POST"])
 def delete_directory():
     dirpath = request.form.get("dirpath")
-    print(f"[DEBUG] Received dirpath: {dirpath}")
+    print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Received dirpath: {dirpath}")
 
     if not dirpath:
         flash("Directory path is required.", "error")
@@ -333,7 +343,7 @@ def delete_directory():
 
     # Normalize path
     physical_path = os.path.normpath(os.path.join(UPLOAD_BASE_PATH, dirpath))
-    print(f"[DEBUG] Physical path resolved: {physical_path}")
+    print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Physical path resolved: {physical_path}")
 
     if not physical_path.startswith(os.path.abspath(UPLOAD_BASE_PATH)):
         flash("Invalid directory path.", "error")
@@ -342,8 +352,9 @@ def delete_directory():
     try:
         delete_directory_from_db_and_disk(dirpath)
         flash(f"Directory '{dirpath}' deleted successfully.", "success")
+        print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} Directory '{dirpath}' deleted successfully.")
     except Exception as e:
-        print(f"[ERROR] Failed to delete directory '{dirpath}': {e}")
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to delete directory '{dirpath}': {e}")
         flash(f"Failed to delete directory '{dirpath}': {e}", "error")
 
     return redirect(request.referrer or url_for("directories.list_root_directory"))
