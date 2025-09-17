@@ -281,7 +281,7 @@ def serve_file(filepath):
     if mime_type is None:
         mime_type = "application/octet-stream"
     print(f"Determined MIME type: '{mime_type}'")
-    
+
     return send_file(full_path, mimetype=mime_type, as_attachment=False)
 
 # debug route for file creation
@@ -294,6 +294,59 @@ def test_create_folder():
     except Exception as e:
         return f"Failed to create test folder: {e}"
 
+# File Deletion
+@bp.route("/delete_file", methods=["POST"])
+def delete_file():
+    filepath = request.form.get("filepath")
+    print(f"[DEBUG] Received filepath: {filepath}")
+
+    if not filepath:
+        flash("File path is required.", "error")
+        return redirect(request.referrer or url_for("directories.list_root_directory"))
+
+    # Normalize path
+    physical_path = os.path.normpath(os.path.join(UPLOAD_BASE_PATH, filepath))
+    print(f"[DEBUG] Physical path resolved: {physical_path}")
+
+    if not physical_path.startswith(os.path.abspath(UPLOAD_BASE_PATH)):
+        flash("Invalid file path.", "error")
+        return redirect(request.referrer)
+
+    try:
+        delete_file_from_db_and_disk(filepath)
+        flash(f"File '{filepath}' deleted successfully.", "success")
+    except Exception as e:
+        print(f"[ERROR] Failed to delete file '{filepath}': {e}")
+        flash(f"Failed to delete file '{filepath}': {e}", "error")
+
+    return redirect(request.referrer or url_for("directories.list_root_directory"))
+
+# Folder Deletion
+@bp.route("/delete_directory", methods=["POST"])
+def delete_directory():
+    dirpath = request.form.get("dirpath")
+    print(f"[DEBUG] Received dirpath: {dirpath}")
+
+    if not dirpath:
+        flash("Directory path is required.", "error")
+        return redirect(request.referrer or url_for("directories.list_root_directory"))
+
+    # Normalize path
+    physical_path = os.path.normpath(os.path.join(UPLOAD_BASE_PATH, dirpath))
+    print(f"[DEBUG] Physical path resolved: {physical_path}")
+
+    if not physical_path.startswith(os.path.abspath(UPLOAD_BASE_PATH)):
+        flash("Invalid directory path.", "error")
+        return redirect(request.referrer)
+
+    try:
+        delete_directory_from_db_and_disk(dirpath)
+        flash(f"Directory '{dirpath}' deleted successfully.", "success")
+    except Exception as e:
+        print(f"[ERROR] Failed to delete directory '{dirpath}': {e}")
+        flash(f"Failed to delete directory '{dirpath}': {e}", "error")
+
+    return redirect(request.referrer or url_for("directories.list_root_directory"))
 
 # Error Handling Pages 
 # NNL

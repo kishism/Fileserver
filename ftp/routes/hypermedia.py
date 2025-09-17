@@ -64,11 +64,16 @@ def hypermedia_file_response(filepath, filename, mime_type, size):
     # 'self' points to the current file resource
     links.append(f'<{request.path}>; rel="self"')
 
-    # 'parent' points to the directory containing the file
-    parent_path = "/".join(filepath.split("/")[:-1])
-    if parent_path == "":
-        parent_path = "/"
-    links.append(f'</{parent_path}>; rel="parent"')
+    # 'parent' points to the directory containing the file in the FTP hierarchy
+    # Strip leading/trailing slashes and split
+    parts = filepath.strip("/").split("/")
+    parent_parts = parts[:-1]  # all but the last element (the file itself)
+    if parent_parts:
+        parent_path = "/" + "/".join(parent_parts)  
+    else:
+        parent_path = "/"  # top-level file parent is root
+
+    links.append(f'<{parent_path}>; rel="parent"')
 
     # Set Link header with all links
     response.headers["Link"] = ", ".join(links)

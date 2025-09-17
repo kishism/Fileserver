@@ -1,17 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-
 <!-- 
-  
    `Breadcrumb is currently broken`
-
-<div class="file-breadcrumb">
-  {% set parts = dirpath.split('/') if dirpath else [] %}
-  {% set accumulated_paths = [] %}
-
-  <a href="{{ url_for('directories.list_directory', dirpath='') }}" class="breadcrumb-link">root</a>
-
-  {% for part in parts %}
+   
+   <div class="file-breadcrumb">
+   {% set parts = dirpath.split('/') if dirpath else [] %}
+   {% set accumulated_paths = [] %}
+   
+   <a href="{{ url_for('directories.list_directory', dirpath='') }}" class="breadcrumb-link">root</a>
+   
+   {% for part in parts %}
       {% set accumulated_paths = accumulated_paths + [part] %}
       {% set full_path = accumulated_paths | join('/') %}
       <span class="breadcrumb-separator">/</span>
@@ -22,71 +20,162 @@
               {{ part }}
           </a>
       {% endif %}
-  {% endfor %}
-</div> 
--->
-
-<!-- Toolbar -->
+   {% endfor %}
+   </div> 
+   -->
 <section class="toolbar">
-  <!-- Create folder -->
-  <form action="{{ url_for('directories.create_directory') }}" method="POST" class="toolbar-item">
-    <input type="hidden" name="parent_dir" value="{{ dirpath if dirpath else '' }}">
-    <input type="text" name="dirname" placeholder="New Folder Name" required title="Folder Name">
-    <button type="submit" class="icon-btn" title="Create Folder">
+   <!-- Create Folder -->
+   <form action="{{ url_for('directories.create_directory') }}" method="POST" class="toolbar-item hover-card-container">
+      <input type="hidden" name="parent_dir" value="{{ dirpath if dirpath else '' }}">
+      <input type="text" name="dirname" placeholder="New Folder Name" required title="Folder Name">
+      <button type="submit" class="icon-btn" data-tooltip="Create Folder">
       <span class="icon folder-icon"></span>
-    </button>
-  </form>
-
-  <!-- Upload file -->
-  <form action="{{ url_for('directories.upload_file', dirpath=dirpath if dirpath else '') }}" 
-        method="POST" enctype="multipart/form-data" class="toolbar-item">
-    <input type="file" name="file" id="upload-file" hidden onchange="this.form.submit()">
-    <label for="upload-file" class="icon-btn" title="Upload File">
+      </button>
+      <div class="hover-card">
+         <h4>Create Folder</h4>
+         <p>Creates a new folder in the current directory.</p>
+         <p>Enter the folder name in the text box, then click this button to create it.</p>
+      </div>
+   </form>
+   <!-- Upload file -->
+   <form action="{{ url_for('directories.upload_file', dirpath=dirpath if dirpath else '') }}" 
+      method="POST" enctype="multipart/form-data" class="toolbar-item hover-card-container">
+      <input type="file" name="file" id="upload-file" hidden onchange="this.form.submit()">
+      <label for="upload-file" class="icon-btn" data-tooltip="Upload File">
       <span class="icon file-upload-icon"></span>
-    </label>
-    <button type="submit" hidden></button>
-  </form>
-
-  <!-- Upload folder -->
-  <form action="{{ url_for('directories.upload_folder', dirpath=dirpath if dirpath else '') }}"
-        method="POST" enctype="multipart/form-data" class="toolbar-item">
-    <input type="file" name="files" id="upload-folder" webkitdirectory multiple hidden onchange="this.form.submit()">
-    <label for="upload-folder" class="icon-btn" title="Upload Folder">
+      </label>
+      <button type="submit" hidden></button>
+      <div class="hover-card">
+         <h4>Upload File</h4>
+         <p>Select a single file from your computer to upload to the current directory.</p>
+         <p>The file will be uploaded immediately after selection.</p>
+      </div>
+   </form>
+   <!-- Upload folder -->
+   <form action="{{ url_for('directories.upload_folder', dirpath=dirpath if dirpath else '') }}"
+      method="POST" enctype="multipart/form-data" class="toolbar-item hover-card-container">
+      <input type="file" name="files" id="upload-folder" webkitdirectory multiple hidden onchange="this.form.submit()">
+      <label for="upload-folder" class="icon-btn" data-tooltip="Upload Folder">
       <span class="icon folder-upload-icon"></span>
-    </label>
-    <button type="submit" hidden></button>
-  </form>
+      </label>
+      <button type="submit" hidden></button>
+      <div class="hover-card">
+         <h4>Upload Folder</h4>
+         <p>Select an entire folder from your computer to upload.</p>
+         <p>All files in the folder and subfolders will be uploaded automatically.</p>
+         <p><strong>Note:</strong> Your browser may ask for confirmation before uploading all files.</p>
+      </div>
+   </form>
 </section>
-
 <h2>{{ dirpath }}/</h2>
-
 <!-- Folder and file list -->
 <ul class="file-list">
-  {% for d in directories %}
-    {% set child_path = (dirpath ~ '/' ~ d) if dirpath else d %}
-    {% if child_path != dirpath %}
-      <li class="folder">
-        <a href="{{ url_for('directories.list_directory', dirpath=child_path) }}">
-          <span class="file-icon folder-icon"></span>
-          {{ d }}
-        </a>
-      </li>
-    {% else %}
-      <li class="folder current">
-        <span class="file-icon folder-icon"></span>
-        {{ d }}
-      </li>
-    {% endif %}
-  {% endfor %}
-
-  {% for f in files %}
-    <li class="file">
-      <a href="{{ url_for('directories.view_file', filepath=(dirpath ~ '/' ~ f.name) if dirpath else f.name) }}">
-        <span class="file-icon {% if f.mime_type.startswith('image/') %}image-file-icon{% else %}regular-file-icon{% endif %}"></span>
-        {{ f.name }}
+   {% for d in directories %}
+   {% set child_path = (dirpath ~ '/' ~ d) if dirpath else d %}
+   {% if child_path != dirpath %}
+   <li class="folder">
+      <div class="file-item">
+      <a href="{{ url_for('directories.list_directory', dirpath=child_path) }}">
+      <span class="file-icon folder-icon"></span>
+      {{ d }}
       </a>
-    </li>
-  {% endfor %}
+      <div class="hover-card-container">
+         <!-- Delete Folder Button -->
+         <button type="button" class="icon-btn delete-btn" data-tooltip="Delete Folder"
+            onclick="openDeleteModal('folder', '{{ (dirpath ~ '/' ~ d) if dirpath else d }}')">
+         <span class="icon delete-folder-icon"></span>
+         </button>
+         <div class="hover-card delete-tooltip">
+            <h4>Delete Folder ❌</h4>
+            <p>Remove this folder and all of its contents permanently.</p>
+         </div>
+      </div>
+   </li>
+   {% else %}
+   <li class="folder current">
+      <span class="file-icon folder-icon"></span>
+      {{ d }}
+   </li>
+   {% endif %}
+   {% endfor %}
+   {% for f in files %}
+   <li class="file">
+      <div class="file-item">
+         <a href="{{ url_for('directories.view_file', filepath=(dirpath ~ '/' ~ f.name) if dirpath else f.name) }}">
+         <span class="file-icon {% if f.mime_type.startswith('image/') %}image-file-icon{% else %}regular-file-icon{% endif %}"></span>
+         {{ f.name }}
+         </a>
+         <div class="hover-card-container">
+            <!-- Delete File Button -->
+            <button type="button" class="icon-btn delete-btn" data-tooltip="Delete File"
+               onclick="openDeleteModal('file', '{{ (dirpath ~ '/' ~ f.name) if dirpath else f.name }}')">
+            <span class="icon delete-file-icon"></span>
+            </button>
+            <div class="hover-card delete-tooltip">
+               <h4>Delete File ❌</h4>
+               <p>Delete this file permanently. This action cannot be undone.</p>
+            </div>
+         </div>
+      </div>
+   </li>
+   {% endfor %}
 </ul>
-
+<!-- Delete Confirmation Box -->
+<div id="deleteModal" class="modal" style="display:none;">
+   <div class="modal-content">
+      <p id="deleteMessage">Are you sure you want to delete this item?</p>
+      <form id="deleteForm" method="POST">
+         <input type="hidden" name="dirpath" id="modalDirpath">
+         <input type="hidden" name="filepath" id="modalFilepath">
+         <div class="modal-buttons">
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+            <button type="button" class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+         </div>
+      </form>
+   </div>
+</div>
+<script>
+   function openDeleteModal(type, path) {
+       const modal = document.getElementById('deleteModal');
+       const message = document.getElementById('deleteMessage');
+       const dirInput = document.getElementById('modalDirpath');
+       const fileInput = document.getElementById('modalFilepath');
+   
+       if (type === 'folder') {
+           message.textContent = `Are you sure you want to delete folder "${path}" and all its contents?`;
+           dirInput.value = path;
+           fileInput.value = '';
+           document.getElementById('deleteForm').action = "{{ url_for('directories.delete_directory') }}";
+       } else if (type === 'file') {
+           message.textContent = `Are you sure you want to delete file "${path}"?`;
+           fileInput.value = path;
+           dirInput.value = '';
+           document.getElementById('deleteForm').action = "{{ url_for('directories.delete_file') }}";
+       }
+   
+       modal.style.display = 'flex';
+   }
+   
+   function closeDeleteModal() {
+       document.getElementById('deleteModal').style.display = 'none';
+   }
+   
+   document.querySelectorAll('.hover-card-container').forEach(container => {
+     const card = container.querySelector('.hover-card');
+     let timeout;
+   
+     container.addEventListener('mouseenter', () => {
+       timeout = setTimeout(() => {
+         card.style.opacity = '1';
+         card.style.visibility = 'visible';
+       }, 1000); 
+     });
+   
+     container.addEventListener('mouseleave', () => {
+       clearTimeout(timeout);
+       card.style.opacity = '0';
+       card.style.visibility = 'hidden';
+     });
+   });
+</script>
 {% endblock %}

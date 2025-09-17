@@ -1,5 +1,6 @@
 # ftp/models.py
 from contextlib import contextmanager
+import shutil
 import sqlite3
 import time
 from flask import current_app
@@ -10,7 +11,8 @@ UPLOAD_BASE_PATH = "C:/ftp-server"
 
 @contextmanager
 def get_db_connection():
-    conn = sqlite3.connect("your_database_file.db")
+    conn = sqlite3.connect("ftp.db")
+    conn.row_factory = sqlite3.Row 
     try:
         yield conn
         conn.commit()
@@ -278,3 +280,93 @@ def get_file_from_db(filepath):
             return row["content"], row["mime_type"]
         return
 
+def delete_file_from_db_and_disk(filepath):
+    if filepath.startswith("root/"):
+        filepath = filepath[5:]
+    elif filepath == "root":
+        raise ValueError("Cannot delete root")
+
+    physical_path = os.path.join(UPLOAD_BASE_PATH, filepath)
+    print(f"[DEBUG] Deleting file '{filepath}' at physical path '{physical_path}'")
+
+    # Delete physical file
+    if os.path.exists(physical_path):
+        os.remove(physical_path)
+        print(f"[DEBUG] Physical file deleted: {physical_path}")
+    else:
+        print(f"[DEBUG] Physical file does not exist: {physical_path}")
+
+    # Delete from DB
+    parts = filepath.strip("/").split("/")
+    filename = parts[-1]
+    dir_parts = parts[:-1]
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        parent_id = None
+        for part in dir_parts:
+            cursor.execute(
+                "SELECT id FROM directories WHERE name=? AND parent_id IS ?",
+                (part, parent_id)
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"Directory '{'/'.join(dir_parts)}' does not exist in DB.")
+            parent_id = row["id"]
+
+        cursor.execute(
+            "DELETE FROM files WHERE name=? AND directory_id IS ?",
+            (filename, parent_id)
+        )
+        print(f"[DEBUG] Deleted file '{filename}' from DB")
+
+def delete_directory_from_db_and_disk(dirpath):
+    if dirpath.startswith("root/"):
+        dirpath = dirpath[5:]
+    elif dirpath == "root":
+        raise ValueError("Cannot delete root directory")
+
+    physical_path = os.path.join(UPLOAD_BASE_PATH, dirpath)
+    print(f"[DEBUG] Deleting directory '{dirpath}' at physical path '{physical_path}'")
+
+    # Delete physical directory recursively
+    if os.path.exists(physical_path):
+        shutil.rmtree(physical_path)
+        print(f"[DEBUG] Physical directory deleted: {physical_path}")
+    else:
+        print(f"[DEBUG] Physical directory does not exist: {physical_path}")
+
+    # Delete from DB recursively using a single connection
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+
+        # Find directory ID
+        parts = dirpath.strip("/").split("/")
+        parent_id = None
+        for part in parts:
+            cursor.execute(
+                "SELECT id FROM directories WHERE name=? AND parent_id IS ?",
+                (part, parent_id)
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError(f"Directory '{dirpath}' does not exist in DB.")
+            parent_id = row["id"]
+
+        # Recursive deletion function
+        def delete_dir_recursive(cursor, parent_id):
+            # Delete files in this directory
+            cursor.execute("DELETE FROM files WHERE directory_id=?", (parent_id,))
+            print(f"[DEBUG] Deleted files in directory ID {parent_id}")
+
+            # Find subdirectories
+            cursor.execute("SELECT id FROM directories WHERE parent_id=?", (parent_id,))
+            subdirs = cursor.fetchall()
+            for subdir in subdirs:
+                delete_dir_recursive(cursor, subdir["id"])
+
+            # Delete the directory itself
+            cursor.execute("DELETE FROM directories WHERE id=?", (parent_id,))
+            print(f"[DEBUG] Deleted directory ID {parent_id}")
+
+        delete_dir_recursive(cursor, parent_id)
+        print(f"[DEBUG] Finished deleting directory '{dirpath}' and all nested contents")
