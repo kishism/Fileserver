@@ -44,6 +44,8 @@
          <p><strong>Note:</strong> Your browser may ask for confirmation before uploading all files.</p>
       </div>
    </form>
+
+   <input type="file" id="drop-input" name="file" multiple hidden>
 </section>
 <h1>/</h1>
 <!-- Folder and file list -->
@@ -185,6 +187,52 @@
        card.style.visibility = 'hidden';
      });
    });
+
+const dropInput = document.getElementById("drop-input");
+
+document.body.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  document.body.classList.add("drag-over");
+});
+
+document.body.addEventListener("dragleave", (e) => {
+  e.preventDefault();
+  document.body.classList.remove("drag-over");
+});
+
+document.body.addEventListener("drop", (e) => {
+  e.preventDefault();
+  document.body.classList.remove("drag-over");
+  handleFiles(e.dataTransfer.files);
+});
+
+dropInput.addEventListener("change", () => {
+  handleFiles(dropInput.files);
+});
+
+function handleFiles(files) {
+  if (!files.length) return;
+
+  const formData = new FormData();
+  for (const file of files) {
+    formData.append("file", file);
+  }
+
+  const uploadUrl = "{{ url_for('directories.upload_file', dirpath='') }}";
+
+  fetch(uploadUrl, {
+    method: "POST",
+    body: formData,
+  })
+  .then(res => {
+    if (res.ok) location.reload();
+    else alert("Upload failed");
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Error uploading file");
+  });
+}
 </script>
 {% endblock %}
 {#

@@ -66,6 +66,11 @@
          <p><strong>Note:</strong> Your browser may ask for confirmation before uploading all files.</p>
       </div>
    </form>
+
+   <input type="file" id="drop-input" name="file" multiple hidden
+       data-dirpath="{{ dirname }}"
+       data-upload-url="{{ url_for('directories.upload_file', dirpath=dirpath if dirpath else '') }}">
+
 </section>
 <h2>{{ dirpath }}/</h2>
 <!-- Folder and file list -->
@@ -217,5 +222,61 @@
        card.style.visibility = 'hidden';
      });
    });
+
+const dropInput = document.getElementById("drop-input");
+
+if (!dropInput) {
+  console.error("Drop input element not found!");
+} else {
+  console.log("Upload URL:", dropInput.dataset.uploadUrl);
+}
+
+document.body.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  document.body.classList.add("drag-over");
+});
+
+document.body.addEventListener("dragleave", (e) => {
+  e.preventDefault();
+  document.body.classList.remove("drag-over");
+});
+
+document.body.addEventListener("drop", (e) => {
+  e.preventDefault();
+  document.body.classList.remove("drag-over");
+  const files = e.dataTransfer.files;
+  handleFiles(files);
+});
+
+dropInput.addEventListener("change", () => {
+  handleFiles(dropInput.files);
+});
+
+function handleFiles(files) {
+  if (!files.length) return;
+
+  const formData = new FormData();
+  for (const file of files) {
+    formData.append("file", file);
+  }
+
+  const uploadUrl = dropInput.dataset.uploadUrl;
+  const dirpath = dropInput.dataset.dirpath || "";
+
+  formData.append("dirpath", dirpath);
+
+  fetch(uploadUrl, {
+    method: "POST",
+    body: formData,
+  })
+  .then(res => {
+    if (res.ok) location.reload();
+    else res.text().then(t => alert("Upload failed: " + t));
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Error uploading file");
+  });
+}
 </script>
 {% endblock %}
