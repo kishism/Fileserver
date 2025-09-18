@@ -99,26 +99,66 @@
    {% endif %}
    {% endfor %}
    {% for f in files %}
-   <li class="file">
-      <div class="file-item">
-         <a href="{{ url_for('directories.view_file', filepath=(dirpath ~ '/' ~ f.name) if dirpath else f.name) }}">
-         <span class="file-icon {% if f.mime_type.startswith('image/') %}image-file-icon{% else %}regular-file-icon{% endif %}"></span>
-         {{ f.name }}
-         </a>
-         <div class="hover-card-container">
-            <!-- Delete File Button -->
-            <button type="button" class="icon-btn delete-btn" data-tooltip="Delete File"
-               onclick="openDeleteModal('file', '{{ (dirpath ~ '/' ~ f.name) if dirpath else f.name }}')">
-            <span class="icon delete-file-icon"></span>
-            </button>
-            <div class="hover-card delete-tooltip">
-               <h4>Delete File ❌</h4>
-               <p>Delete this file permanently. This action cannot be undone.</p>
+    {# --- Get the file extension safely --- #}
+    {% set ext = (f.name.rsplit('.', 1)[-1] | lower) if '.' in f.name else '' %}
+
+    {# --- Default icon --- #}
+    {% set icon_class = 'regular-file-icon' %}
+
+    {# --- Extension-based mapping --- #}
+    {% if ext in ['png','jpg','jpeg','gif','webp','svg'] %}
+        {% set icon_class = 'image-file-icon' %}
+    {% elif ext in ['html','htm'] %}
+        {% set icon_class = 'html-file-icon' %}
+    {% elif ext == 'css' %}
+        {% set icon_class = 'css-file-icon' %}
+    {% elif ext == 'js' %}
+        {% set icon_class = 'js-file-icon' %}
+    {% elif ext == 'json' %}
+        {% set icon_class = 'json-file-icon' %}
+    {% elif ext in ['mp4','mkv','mov'] %}
+        {% set icon_class = 'video-file-icon' %}
+    {% elif ext in ['mp3','wav'] %}
+        {% set icon_class = 'audio-file-icon' %}
+    {% elif ext == 'pdf' %}
+        {% set icon_class = 'pdf-file-icon' %}
+    {% endif %}
+
+    {# --- MIME fallback if no extension matched --- #}
+    {% if icon_class == 'regular-file-icon' %}
+        {% if f.mime_type.startswith('image/') %}
+            {% set icon_class = 'image-file-icon' %}
+        {% elif f.mime_type.startswith('text/') %}
+            {% set icon_class = 'text-file-icon' %}
+        {% elif f.mime_type.startswith('video/') %}
+            {% set icon_class = 'video-file-icon' %}
+        {% elif f.mime_type.startswith('audio/') %}
+            {% set icon_class = 'audio-file-icon' %}
+        {% elif f.mime_type == 'application/json' %}
+            {% set icon_class = 'json-file-icon' %}
+        {% endif %}
+    {% endif %}
+
+    <li class="file">
+        <div class="file-item">
+            <a href="{{ url_for('directories.view_file', filepath=(dirpath ~ '/' ~ f.name) if dirpath else f.name) }}">
+                <span class="file-icon {{ icon_class }}"></span>
+                {{ f.name }}
+            </a>
+            <div class="hover-card-container">
+                <!-- Delete File Button -->
+                <button type="button" class="icon-btn delete-btn" data-tooltip="Delete File"
+                        onclick="openDeleteModal('file', '{{ (dirpath ~ '/' ~ f.name) if dirpath else f.name }}')">
+                    <span class="icon delete-file-icon"></span>
+                </button>
+                <div class="hover-card delete-tooltip">
+                    <h4>Delete File ❌</h4>
+                    <p>Delete this file permanently. This action cannot be undone.</p>
+                </div>
             </div>
-         </div>
-      </div>
-   </li>
-   {% endfor %}
+        </div>
+    </li>
+{% endfor %}
 </ul>
 <!-- Delete Confirmation Box -->
 <div id="deleteModal" class="modal" style="display:none;">

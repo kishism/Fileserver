@@ -1,7 +1,10 @@
 #ftp/routes/hypermedia.py
 # It prepares HTML responses and adds hypermedia-specific headers.
+import os
 from flask import render_template, make_response, request
 import datetime
+
+BASE_PATH = "C:/ftp-server"
 
 def hypermedia_response(dirpath, directories, files):
     """
@@ -43,6 +46,29 @@ def hypermedia_file_response(filepath, filename, mime_type, size):
     Prepare a hypermedia HTML response for a file view.
     Renders 'file.html' with file metadata.
     """
+    ext = os.path.splitext(filepath)[1].lower()
+    lang_map = {
+        ".py": "python",
+        ".js": "javascript",
+        ".html": "html",
+        ".css": "css",
+        ".json": "json",
+        ".sh": "bash",
+        ".txt": "text",
+        ".md": "markdown",
+    }
+    language = lang_map.get(ext, "text")
+
+    text_preview = []
+    # For text files, read first 50 lines
+    if mime_type.startswith("text/"):
+        full_path = os.path.join(BASE_PATH, filepath)
+        try:
+            with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
+                text_preview = f.read().splitlines()[:50]  # first 50 lines
+        except Exception as e:
+            print(f"[WARN] Failed to read text file preview: {e}")
+
     # Render the HTML content with file metadata
     html = render_template(
         "file.html",
@@ -50,6 +76,8 @@ def hypermedia_file_response(filepath, filename, mime_type, size):
         filename=filename,
         mime_type=mime_type,
         size=size,
+        text_preview=text_preview,
+        language=language
     )
 
     # Build Flask response with hypermedia headers

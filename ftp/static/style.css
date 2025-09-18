@@ -197,7 +197,6 @@ body {
 	z-index: 10;
 }
 
-
 /* Show tooltip on hover */
 .icon-btn:hover::after,
 .icon-btn:hover::before {
@@ -270,8 +269,41 @@ body {
 }
 
 .file-list .image-file-icon {
-	background-image: url('/static/icons/image-1-filled.svg');
+	background-image: url('/static/icons/picture.webp');
 }
+
+.file-list .html-file-icon {
+	background-image: url('/static/icons/html.webp');
+}
+
+.file-list .css-file-icon {
+	background-image: url('/static/icons/css-3.webp');
+}
+
+.file-list .js-file-icon {
+	background-image: url('/static/icons/js.webp');
+}
+
+.file-list .json-file-icon {
+	background-image: url('/static/icons/json.webp');
+}
+
+.file-list .video-file-icon {
+	background-image: url('/static/icons/video.webp');
+}
+
+.file-list .audio-file-icon {
+	background-image: url('/static/icons/audio-file.webp');
+}
+
+.file-list .pdf-file-icon {
+	background-image: url('/static/icons/pdf.webp');
+}
+
+.file-list .text-file-icon {
+	background-image: url('/static/icons/file.webp');
+}
+
 
 /* For file.html */
 
@@ -346,25 +378,6 @@ body {
 .file-actions .btn:hover {
 	background: #e9ecef;
 	transform: translateY(-1px);
-}
-
-/* Image preview */
-.file-preview {
-	display: flex;
-	justify-content: center;
-	margin: 1rem 0;
-}
-
-.file-preview img {
-	max-width: 100%;
-	max-height: 600px;
-	border-radius: 6px;
-	object-fit: contain;
-	transition: transform 0.2s ease-in-out;
-}
-
-.file-preview img:hover {
-	transform: scale(1.02);
 }
 
 /* Metadata table */
@@ -488,4 +501,65 @@ body {
 	display: flex;
 	align-items: center;
 	gap: 0.25rem;
+}
+
+/* File Preview Styles */
+.file-preview {
+    margin: 1rem 0;
+    border-radius: 6px;
+    padding: 1rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+/* Images */
+.file-preview-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
+/* PDF iframe */
+.file-preview-pdf iframe {
+    width: 100%;
+    height: 600px;
+    border: none;
+}
+#pdf-loading-message {
+    text-align: center;
+    color: #555;
+    font-style: italic;
+    margin-bottom: 0.5rem;
+}
+
+/* Text files */
+.file-preview-text,
+.file-preview-json {
+    max-height: 600px; /* ~50 lines */
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 0.95rem;
+}
+
+/* Audio player */
+.file-preview-audio audio {
+    width: 100%;
+	border-radius: 6px;
+  	background-color: #f1f3f5;
+  	margin: 0.5rem 0;
+}
+
+/* Video player */
+.file-preview-video video {
+	width: 100%;
+	max-height: 600px;
+	border-radius: 6px;
+	background-color: #000;
+	margin: 0.5rem 0;
+  }
+
+/* Unsupported files */
+.file-preview-unsupported {
+    font-style: italic;
+    color: #888;
 }

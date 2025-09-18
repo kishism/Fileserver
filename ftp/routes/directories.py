@@ -273,7 +273,7 @@ def view_file(filepath):
         filepath=filepath,
         filename=os.path.basename(full_path),
         mime_type=mime_type,
-        size=file_size,
+        size=file_size
     )
 
 # File Serving

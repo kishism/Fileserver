@@ -38,21 +38,89 @@
   <button class="btn">Share</button>
 </div>
 
-{% if 'image' in mime_type %}
-<div class="file-preview">
-  <img src="{{ url_for('directories.serve_file', filepath=filepath) }}" 
-       alt="{{ filename }}">
+<!-- File Preview -->
+{% if mime_type.startswith('image/') %}
+<div class="file-preview file-preview-image">
+  <img src="{{ url_for('directories.serve_file', filepath=filepath) }}" alt="{{ filename }}">
+</div>
+
+{% elif mime_type == 'application/pdf' %}
+<div class="file-preview file-preview-pdf">
+  <p id="pdf-loading-message">Loading PDF...</p>
+  <iframe 
+      src="{{ url_for('directories.serve_file', filepath=filepath) }}" 
+      width="100%" 
+      height="600px" 
+      loading="lazy"
+      onload="document.getElementById('pdf-loading-message').style.display='none';"
+      title="{{ filename }}">
+  </iframe>
+</div>
+
+{% elif mime_type.startswith('text/') %}
+<div class="file-preview file-preview-text">
+  {% if text_preview %}
+    <pre><code class="language-{{ language }}">{{ text_preview | join('\n') }}</code></pre>
+  {% else %}
+    <pre><em>(empty file)</em></pre>
+  {% endif %}
+</div>
+
+{% elif mime_type.startswith('application/json') %}
+<div class="file-preview file-preview-json">
+  {% if text_preview %}
+    <pre>{{ text_preview | join('\n') }}</pre>
+  {% else %}
+    <pre><em>(empty JSON file)</em></pre>
+  {% endif %}
+</div>
+{% elif mime_type.startswith('audio/') %}
+<div class="file-preview file-preview-audio">
+  <audio controls>
+    <source src="{{ url_for('directories.serve_file', filepath=filepath) }}" type="{{ mime_type }}">
+    Your browser does not support the audio element.
+  </audio>
+</div>
+
+{% elif mime_type.startswith('video/') %}
+<div class="file-preview file-preview-video">
+  <video controls>
+    <source src="{{ url_for('directories.serve_file', filepath=filepath) }}" type="{{ mime_type }}">
+    Your browser does not support the video element.
+  </video>
+</div>
+
+{% else %}
+<div class="file-preview file-preview-unsupported">
+  No preview available for this file type: {{ mime_type }}
 </div>
 {% endif %}
 
+<!-- Metadata Table -->
 <table class="file-meta">
   <tr>
+    <th>File Name</th>
+    <td>{{ filename }}</td>
+  </tr>
+  <tr>
     <th>Media type</th>
-    <td>{{ mime_type }}</td>
+    <td>{{ mime_type or 'unknown' }}</td>
   </tr>
   <tr>
     <th>Size</th>
     <td>{{ size }} bytes</td>
+  </tr>
+  <tr>
+    <th>Directory</th>
+    <td>{{ dirpath or '/' }}</td> <!-- Broken -->
+  </tr>
+  <tr>
+    <th>Created</th>
+    <td>{{ created_at or '2025-09-15 12:00:00 - dummy data' }}</td> <!-- Construct a row in database -->
+  </tr>
+  <tr>
+    <th>Last modified</th>
+    <td>{{ modified_at or '2025-09-15 12:30:00 - dummy data' }}</td> <!-- Construct a row in database -->
   </tr>
 </table>
 
