@@ -51,7 +51,7 @@
 <!-- Folder and file list -->
 <ul class="file-list">
    {% for d in directories %}
-   <li class="folder">
+   <li class="folder" data-dirpath="{{ d if not dirpath else dirpath ~ '/' ~ d }}">
       <div class="file-item">
       <a href="{{ url_for('directories.list_directory', dirpath=d) }}">
       <span class="file-icon folder-icon"></span>
@@ -109,7 +109,7 @@
       {% endif %}
    {% endif %}
 
-   <li class="file">
+   <li class="file" data-filepath="{{ (dirpath ~ '/' ~ f.name) if dirpath and dirpath != 'root' else f.name }}">
       <div class="file-item">
          <a href="{{ url_for('directories.view_file', filepath=(dirpath ~ '/' ~ f.name) if dirpath and dirpath != 'root' else f.name) }}">
             <span class="file-icon {{ icon_class }}"></span>
@@ -144,6 +144,41 @@
       </form>
    </div>
 </div>
+<!-- Context Menu -->
+<ul id="contextMenu" class="context-menu" style="display:none; position:absolute;">
+   <!-- Open Options -->
+   <li class="context-item" data-action="open">Open</li>
+   <li class="context-item" data-action="open-new-tab">Open in New Tab</li>
+   <li class="context-item" data-action="open-new-window">Open in New Window</li>
+   <li class="separator"></li>
+
+   <!-- Preview -->
+   <li class="context-item" data-action="preview">Preview (Unsupported)</li>
+   <li class="separator"></li>
+
+   <!-- Basic Actions -->
+   <li class="context-item" data-action="download">Download</li>
+   <li class="context-item" data-action="rename">Rename</li>
+   <li class="context-item" data-action="delete">Delete</li>
+   <li class="separator"></li>
+
+   <!-- Clipboard Actions -->
+   <li class="context-item" data-action="copy">Copy</li>
+   <li class="context-item" data-action="paste">Paste</li>
+   <li class="context-item" data-action="cut">Cut</li>
+   <li class="context-item" data-action="duplicate">Duplicate</li>
+   <li class="separator"></li>
+
+   <!-- Sharing -->
+   <li class="context-item" data-action="share">Share (Unsupported)</li>
+   <li class="context-item" data-action="get-link">Get Link (Supported)</li>
+   <li class="separator"></li>
+
+   <!-- Metadata & Compression -->
+   <li class="context-item" data-action="view-metadata">View Metadata (Unsupported)</li>
+   <li class="context-item" data-action="compress">Compress (Unsupported)</li>
+   <li class="context-item" data-action="extract">Extract (Unsupported)</li>
+</ul>
 <script>
    function openDeleteModal(type, path) {
        const modal = document.getElementById('deleteModal');
@@ -233,6 +268,64 @@ function handleFiles(files) {
     alert("Error uploading file");
   });
 }
+
+const contextMenu = document.getElementById('contextMenu');
+let contextTarget = null;
+let targetPath = '';
+let targetType = ''; 
+
+document.querySelectorAll('.file-list li').forEach(item => {
+    item.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        contextTarget = this;
+
+        if(this.dataset.filepath) {
+            targetPath = this.dataset.filepath;
+            targetType = 'file';
+        } else if(this.dataset.dirpath) {
+            targetPath = this.dataset.dirpath;
+            targetType = 'folder';
+        } else {
+            targetPath = '';
+            targetType = '';
+        }
+
+        contextMenu.style.top = `${e.clientY}px`;
+        contextMenu.style.left = `${e.clientX}px`;
+        contextMenu.style.display = 'block';
+    });
+});
+
+document.addEventListener('click', () => {
+    contextMenu.style.display = 'none';
+});
+
+document.querySelectorAll('#contextMenu .context-item').forEach(item => {
+    item.addEventListener('click', () => {
+        const action = item.dataset.action;
+        console.log(`Action "${action}" on:`, targetPath);
+
+        if(!targetPath || !targetType) return;
+
+        if(targetType === 'file') {
+            const fileUrl = `/file/${encodeURIComponent(targetPath)}`;
+            if(action === 'open') window.location.href = fileUrl;
+            if(action === 'open-new-tab') window.open(fileUrl, '_blank');
+            if(action === 'open-new-window') window.open(fileUrl, '_blank', 'width=900,height=600,resizable=yes');
+        } else if(targetType === 'folder') {
+            const folderUrl = `/${encodeURIComponent(targetPath)}/`;
+            if(action === 'open') window.location.href = folderUrl;
+            if(action === 'open-new-tab') window.open(folderUrl, '_blank');
+            if(action === 'open-new-window') window.open(folderUrl, '_blank', 'width=900,height=600,resizable=yes');
+        }
+
+        contextMenu.style.display = 'none';
+    });
+});
+
+document.addEventListener('keydown', e => {
+    if(e.key === 'Escape') contextMenu.style.display = 'none';
+});
 </script>
 {% endblock %}
 {#
