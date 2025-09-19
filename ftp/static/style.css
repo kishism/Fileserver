@@ -26,6 +26,17 @@ body.drag-over {
 .site-title {
 	margin: 0;
 	font-size: 1.5rem;
+	font-style: italic;
+}
+
+.logo-title {
+	display: flex;
+	align-items: center;
+}
+  
+.site-logo {
+	height: 40px; 
+	margin-right: 10px;
 }
 
 .content {

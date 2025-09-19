@@ -5,6 +5,7 @@
 
 import io
 import mimetypes
+from pathlib import Path
 from flask import Blueprint, abort, flash, render_template, request, redirect, send_file, url_for
 from ftp.models import *
 from ftp.routes.hypermedia import hypermedia_response, hypermedia_file_response
@@ -358,6 +359,43 @@ def delete_directory():
         flash(f"Failed to delete directory '{dirpath}': {e}", "error")
 
     return redirect(request.referrer or url_for("directories.list_root_directory"))
+
+INLINE_PREVIEW_TYPES = [
+    'image/',      
+    'text/',       
+    'application/pdf',  
+    'audio/',     
+    'video/'       
+]
+    
+@bp.route('/download')
+def download_file():
+    requested_path = request.args.get("path", "")
+    if not requested_path:
+        abort(404)
+
+    abs_path = os.path.abspath(os.path.join(BASE_PATH, requested_path))
+
+    if os.path.commonpath([BASE_PATH, abs_path]) != os.path.abspath(BASE_PATH):
+        abort(403)
+
+    if os.path.islink(abs_path):
+        abort(403)
+
+    if not os.path.isfile(abs_path):
+        abort(404)
+
+    mime_type, _ = mimetypes.guess_type(abs_path)
+    if not mime_type:
+        mime_type = "application/octet-stream"
+
+    as_attachment = True
+    for inline_type in INLINE_PREVIEW_TYPES: 
+        if mime_type.startswith(inline_type) or mime_type == inline_type:
+            as_attachment = False
+            break
+
+    return send_file(abs_path, mimetype=mime_type, as_attachment=as_attachment, download_name=os.path.basename(abs_path))    
 
 # Error Handling Pages 
 # NNL

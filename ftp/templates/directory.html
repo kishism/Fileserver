@@ -193,7 +193,6 @@
 
   <!-- Basic Actions -->
   <li class="context-item" data-action="download">Download</li>
-  <li class="context-item" data-action="rename">Rename</li>
   <li class="context-item" data-action="delete">Delete</li>
   <li class="separator"></li>
 
@@ -317,32 +316,41 @@ function handleFiles(files) {
 const contextMenu = document.getElementById('contextMenu');
 let contextTarget = null;
 let targetPath = '';
+let targetType = ''; 
 
-// Parent container of files/folders
-const fileListContainer = document.querySelector('.file-list');
+function resolveFolderUrl(path) {
+   if (!path || path === 'root') return '/';
+   if (path.startsWith('root/')) path = path.slice(5);
+   return `/${encodeURIComponent(path)}/`;
+}
 
-fileListContainer.addEventListener('contextmenu', (e) => {
-    const li = e.target.closest('li'); // find the closest <li>
-    if (!li) return; // clicked outside any item
+document.querySelectorAll('.file-list li').forEach(item => {
+    item.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        contextTarget = this;
+        targetPath = this.dataset.filepath || this.dataset.dirpath || '';
+        targetType = this.dataset.filepath ? 'file' : 'folder';
 
-    e.preventDefault();
-    contextTarget = li;
-    targetPath = li.dataset.filepath || li.dataset.dirpath || '';
+   contextMenu.style.visibility = 'hidden';
+   contextMenu.style.display = 'block';
+    
+   let menuWidth = contextMenu.offsetWidth;
+   let menuHeight = contextMenu.offsetHeight;
+   let posX = e.clientX + window.scrollX;
+   let posY = e.clientY + window.scrollY;
 
-    const top = e.clientY + window.scrollY;
-    const left = e.clientX + window.scrollX;
+   if (posX + menuWidth > window.scrollX + window.innerWidth) {
+        posX = window.scrollX + window.innerWidth - menuWidth - 5;
+   }
+   if (posY + menuHeight > window.scrollY + window.innerHeight) {
+        posY = window.scrollY + window.innerHeight - menuHeight - 5;
+   }
 
-    const menuHeight = contextMenu.offsetHeight;
-    const menuWidth = contextMenu.offsetWidth;
-    const viewportHeight = window.scrollY + window.innerHeight;
-    const viewportWidth = window.scrollX + window.innerWidth;
-
-    const adjustedTop = (top + menuHeight > viewportHeight) ? viewportHeight - menuHeight : top;
-    const adjustedLeft = (left + menuWidth > viewportWidth) ? viewportWidth - menuWidth : left;
-
-    contextMenu.style.top = `${adjustedTop}px`;
-    contextMenu.style.left = `${adjustedLeft}px`;
-    contextMenu.style.display = 'block';
+   contextMenu.style.top = `${posY}px`;
+   contextMenu.style.left = `${posX}px`;
+   contextMenu.style.display = 'block';
+   contextMenu.style.visibility = 'visible';
+   });
 });
 
 document.addEventListener('click', () => {
@@ -353,41 +361,27 @@ document.querySelectorAll('#contextMenu .context-item').forEach(item => {
     item.addEventListener('click', () => {
         const action = item.dataset.action;
         console.log(`Action "${action}" on:`, targetPath);
+        contextMenu.style.display = 'none';
 
-        switch(action) {
-            case 'open': 
-              console.log('Open file/folder'); 
-              window.location.href = fileUrl;
-              break;
-
-            case 'open-new-tab': 
-              console.log('Open in new tab');
-              window.open(fileUrl, '_blank'); 
-              break;
-
-            case 'open-new-window': 
-              console.log('Open in new window'); 
-              window.open(fileUrl, '_blank', 'width=900,height=600,resizable=yes');
-              break;
-
-            case 'preview': console.log('Preview (unsupported)'); break;
-            case 'download': console.log('Download file'); break;
-            case 'rename': console.log('Rename file/folder'); break;
-            case 'delete': console.log('Delete file/folder'); break;
-            case 'copy': console.log('Copy'); break;
-            case 'paste': console.log('Paste'); break;
-            case 'cut': console.log('Cut'); break;
-            case 'duplicate': console.log('Duplicate'); break;
-            case 'share': console.log('Share (unsupported)'); break;
-            case 'get-link': console.log('Get link'); break;
-            case 'view-metadata': console.log('View metadata (unsupported)'); break;
-            case 'compress': console.log('Compress (unsupported)'); break;
-            case 'extract': console.log('Extract (unsupported)'); break;
-            default: 
-              console.log('Unknown action');
-              console.log(`Action "${action}" not handled yet.`);
+        if(targetType === 'file') {
+            const fileUrl = `/file/${encodeURIComponent(targetPath)}`;
+            if(action === 'open') window.location.href = fileUrl;
+            if(action === 'open-new-tab') window.open(fileUrl, '_blank');
+            if(action === 'open-new-window') window.open(fileUrl, '_blank', 'width=900,height=600,resizable=yes');
+            else if (action === 'download') {
+               console.log("Download", targetPath);
+               window.open(`/download?path=${encodeURIComponent(targetPath)}`, '_self');
+}
+        } 
+        
+         else if(targetType === 'folder') {
+         const folderUrl = resolveFolderUrl(targetPath);
+            if(action === 'open') window.location.href = folderUrl;
+            if(action === 'open-new-tab') window.open(folderUrl, '_blank');
+            if(action === 'open-new-window') window.open(folderUrl, '_blank', 'width=900,height=600,resizable=yes');
         }
 
+        console.log(`Action "${action}" on ${targetType}:`, targetPath);
         contextMenu.style.display = 'none';
     });
 });

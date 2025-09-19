@@ -158,7 +158,6 @@
 
    <!-- Basic Actions -->
    <li class="context-item" data-action="download">Download</li>
-   <li class="context-item" data-action="rename">Rename</li>
    <li class="context-item" data-action="delete">Delete</li>
    <li class="separator"></li>
 
@@ -274,26 +273,39 @@ let contextTarget = null;
 let targetPath = '';
 let targetType = ''; 
 
+function resolveFolderUrl(path) {
+   if (!path || path === 'root') return '/';
+   if (path.startsWith('root/')) path = path.slice(5);
+   return `/${encodeURIComponent(path)}/`;
+}
+
 document.querySelectorAll('.file-list li').forEach(item => {
     item.addEventListener('contextmenu', function(e) {
         e.preventDefault();
         contextTarget = this;
+        targetPath = this.dataset.filepath || this.dataset.dirpath || '';
+        targetType = this.dataset.filepath ? 'file' : 'folder';
 
-        if(this.dataset.filepath) {
-            targetPath = this.dataset.filepath;
-            targetType = 'file';
-        } else if(this.dataset.dirpath) {
-            targetPath = this.dataset.dirpath;
-            targetType = 'folder';
-        } else {
-            targetPath = '';
-            targetType = '';
-        }
+   contextMenu.style.visibility = 'hidden';
+   contextMenu.style.display = 'block';
+    
+   let menuWidth = contextMenu.offsetWidth;
+   let menuHeight = contextMenu.offsetHeight;
+   let posX = e.clientX + window.scrollX;
+   let posY = e.clientY + window.scrollY;
 
-        contextMenu.style.top = `${e.clientY}px`;
-        contextMenu.style.left = `${e.clientX}px`;
-        contextMenu.style.display = 'block';
-    });
+   if (posX + menuWidth > window.scrollX + window.innerWidth) {
+        posX = window.scrollX + window.innerWidth - menuWidth - 5;
+   }
+   if (posY + menuHeight > window.scrollY + window.innerHeight) {
+        posY = window.scrollY + window.innerHeight - menuHeight - 5;
+   }
+
+   contextMenu.style.top = `${posY}px`;
+   contextMenu.style.left = `${posX}px`;
+   contextMenu.style.display = 'block';
+   contextMenu.style.visibility = 'visible';
+   });
 });
 
 document.addEventListener('click', () => {
@@ -304,21 +316,27 @@ document.querySelectorAll('#contextMenu .context-item').forEach(item => {
     item.addEventListener('click', () => {
         const action = item.dataset.action;
         console.log(`Action "${action}" on:`, targetPath);
-
-        if(!targetPath || !targetType) return;
+        contextMenu.style.display = 'none';
 
         if(targetType === 'file') {
             const fileUrl = `/file/${encodeURIComponent(targetPath)}`;
             if(action === 'open') window.location.href = fileUrl;
             if(action === 'open-new-tab') window.open(fileUrl, '_blank');
             if(action === 'open-new-window') window.open(fileUrl, '_blank', 'width=900,height=600,resizable=yes');
-        } else if(targetType === 'folder') {
-            const folderUrl = `/${encodeURIComponent(targetPath)}/`;
+            else if (action === 'download') {
+               console.log("Download", targetPath);
+               window.open(`/download?path=${encodeURIComponent(targetPath)}`, '_self');
+}
+        } 
+        
+         else if(targetType === 'folder') {
+         const folderUrl = resolveFolderUrl(targetPath);
             if(action === 'open') window.location.href = folderUrl;
             if(action === 'open-new-tab') window.open(folderUrl, '_blank');
             if(action === 'open-new-window') window.open(folderUrl, '_blank', 'width=900,height=600,resizable=yes');
         }
 
+        console.log(`Action "${action}" on ${targetType}:`, targetPath);
         contextMenu.style.display = 'none';
     });
 });
