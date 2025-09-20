@@ -6,6 +6,7 @@
 import io
 import mimetypes
 from pathlib import Path
+from flask import current_app
 from flask import Blueprint, abort, flash, render_template, request, redirect, send_file, url_for
 from ftp.models import *
 from ftp.routes.hypermedia import hypermedia_response, hypermedia_file_response
@@ -14,10 +15,18 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.utils import secure_filename
 from colorama import init, Fore, Style
 
+base_path = None
+upload_base_path = None
+
+def init_app(app):
+    global base_path
+    global base_path
+
+    base_path = app.config["BASE_PATH"]
+    upload_base_path = app.config["UPLOAD_BASE_PATH"]
+    
 # Initialize Colorama
 init(autoreset=True)
-
-BASE_PATH = "C:/ftp-server"
 
 # 510 status code from HTTPException
 # 510 is not a standard HTTP status code, hence Flask doesn't recongize it
@@ -32,7 +41,7 @@ bp = Blueprint("directories", __name__)
 
 # Syncing with filesystem
 def scan_physical_directory(dirpath):
-    abs_path = os.path.join(BASE_PATH, dirpath) if dirpath else BASE_PATH
+    abs_path = os.path.join(base_path, dirpath) if dirpath else base_path
     print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Scanning physical directory at: '{abs_path}'")
 
     if not os.path.exists(abs_path):
@@ -102,7 +111,7 @@ def upload_file(dirpath):
     
     # Determine directory path on disk
     actual_dirpath = dirpath or ""
-    physical_dir = os.path.join(UPLOAD_BASE_PATH, actual_dirpath)
+    physical_dir = os.path.join(base_path, actual_dirpath)
     try:
         os.makedirs(physical_dir, exist_ok=True)  # Ensure target dir exists
         print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Ensured upload directory exists: '{physical_dir}'")
@@ -158,7 +167,7 @@ def upload_folder(dirpath=None):
 
         # Normalize path delimiter to OS format and prepend parent dir if any
         rel_path = rel_path.replace("/", os.path.sep)
-        full_path = os.path.normpath(os.path.join(BASE_PATH, actual_dirpath, rel_path))
+        full_path = os.path.normpath(os.path.join(base_path, actual_dirpath, rel_path))
         print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Resolved full file path: '{full_path}'")
 
         # Ensure parent directories exist
@@ -208,11 +217,11 @@ def create_directory():
         flash("Invalid folder name.", "error")
         return redirect(request.referrer or url_for("directories.list_root_directory"))
 
-    physical_parent = os.path.abspath(os.path.join(BASE_PATH, parent_dir))
+    physical_parent = os.path.abspath(os.path.join(base_path, parent_dir))
     physical_folder_path = os.path.abspath(os.path.normpath(os.path.join(physical_parent, *path_parts)))
     print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Resolved physical folder path (absolute): {physical_folder_path}")
 
-    if not physical_folder_path.startswith(os.path.abspath(BASE_PATH)):
+    if not physical_folder_path.startswith(os.path.abspath(base_path)):
         flash("Invalid folder path.", "error")
         return redirect(request.referrer or url_for("directories.list_root_directory"))
 
@@ -257,7 +266,7 @@ def create_directory():
 # File Viewing
 @bp.route("/file/<path:filepath>", methods=["GET"])
 def view_file(filepath):
-    full_path = os.path.join(BASE_PATH, filepath)
+    full_path = os.path.join(base_path, filepath)
     print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Requested file path: '{filepath}', resolved full path: '{full_path}'")
 
     if not os.path.isfile(full_path):
@@ -280,7 +289,7 @@ def view_file(filepath):
 # File Serving
 @bp.route("/raw/<path:filepath>", methods=["GET"])
 def serve_file(filepath):
-    full_path = os.path.join(BASE_PATH, filepath)
+    full_path = os.path.join(base_path, filepath)
     print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Serving raw file request for: '{filepath}', resolved full path: '{full_path}'")
 
     if not os.path.isfile(full_path):
@@ -297,7 +306,7 @@ def serve_file(filepath):
 # debug route for file creation
 @bp.route('/test_create_folder/')
 def test_create_folder():
-    test_folder = os.path.join(BASE_PATH, "testfolder")
+    test_folder = os.path.join(base_path, "testfolder")
     try:
         os.makedirs(test_folder, exist_ok=True)
         return f"Test folder created at {test_folder}"
@@ -315,10 +324,10 @@ def delete_file():
         return redirect(request.referrer or url_for("directories.list_root_directory"))
 
     # Normalize path
-    physical_path = os.path.normpath(os.path.join(UPLOAD_BASE_PATH, filepath))
+    physical_path = os.path.normpath(os.path.join(base_path, filepath))
     print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Physical path resolved: {physical_path}")
 
-    if not physical_path.startswith(os.path.abspath(UPLOAD_BASE_PATH)):
+    if not physical_path.startswith(os.path.abspath(base_path)):
         flash("Invalid file path.", "error")
         return redirect(request.referrer)
 
@@ -343,10 +352,10 @@ def delete_directory():
         return redirect(request.referrer or url_for("directories.list_root_directory"))
 
     # Normalize path
-    physical_path = os.path.normpath(os.path.join(UPLOAD_BASE_PATH, dirpath))
+    physical_path = os.path.normpath(os.path.join(base_path, dirpath))
     print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Physical path resolved: {physical_path}")
 
-    if not physical_path.startswith(os.path.abspath(UPLOAD_BASE_PATH)):
+    if not physical_path.startswith(os.path.abspath(upload_base_path)):
         flash("Invalid directory path.", "error")
         return redirect(request.referrer)
 
@@ -374,9 +383,9 @@ def download_file():
     if not requested_path:
         abort(404)
 
-    abs_path = os.path.abspath(os.path.join(BASE_PATH, requested_path))
+    abs_path = os.path.abspath(os.path.join(base_path, requested_path))
 
-    if os.path.commonpath([BASE_PATH, abs_path]) != os.path.abspath(BASE_PATH):
+    if os.path.commonpath([base_path, abs_path]) != os.path.abspath(base_path):
         abort(403)
 
     if os.path.islink(abs_path):
@@ -396,6 +405,10 @@ def download_file():
             break
 
     return send_file(abs_path, mimetype=mime_type, as_attachment=as_attachment, download_name=os.path.basename(abs_path))    
+
+@bp.route("/favicon.ico")
+def favicon():
+    return "", 204  # No content, no errors
 
 # Error Handling Pages 
 # NNL

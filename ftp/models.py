@@ -7,7 +7,11 @@ from flask import current_app
 import os 
 from werkzeug.utils import secure_filename
 
-UPLOAD_BASE_PATH = "C:/ftp-server"
+upload_base_path = None
+
+def init_app(app):
+    global upload_base_path
+    upload_base_path = app.config["UPLOAD_BASE_PATH"]
 
 @contextmanager
 def get_db_connection():
@@ -135,7 +139,7 @@ def save_file_to_directory(file, dirpath):
         print(f"File '{file.filename}' saved in DB with directory ID {dir_id}")
 
     # Physical file saving
-    physical_dir = UPLOAD_BASE_PATH if dir_to_use == "root" else os.path.join(UPLOAD_BASE_PATH, dir_to_use)
+    physical_dir = upload_base_path if dir_to_use == "root" else os.path.join(upload_base_path, dir_to_use)
     print(f"Ensuring physical directory '{physical_dir}' exists")
     os.makedirs(physical_dir, exist_ok=True)
 
@@ -286,7 +290,7 @@ def delete_file_from_db_and_disk(filepath):
     elif filepath == "root":
         raise ValueError("Cannot delete root")
 
-    physical_path = os.path.join(UPLOAD_BASE_PATH, filepath)
+    physical_path = os.path.join(upload_base_path, filepath)
     print(f"Deleting file '{filepath}' at physical path '{physical_path}'")
 
     # Delete physical file
@@ -325,7 +329,7 @@ def delete_directory_from_db_and_disk(dirpath):
     elif dirpath == "root":
         raise ValueError("Cannot delete root directory")
 
-    physical_path = os.path.join(UPLOAD_BASE_PATH, dirpath)
+    physical_path = os.path.join(upload_base_path, dirpath)
     print(f"Deleting directory '{dirpath}' at physical path '{physical_path}'")
 
     # Delete physical directory recursively

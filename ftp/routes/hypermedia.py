@@ -1,10 +1,15 @@
 #ftp/routes/hypermedia.py
 # It prepares HTML responses and adds hypermedia-specific headers.
 import os
+from flask import current_app
 from flask import render_template, make_response, request
 import datetime
 
-BASE_PATH = "C:/ftp-server"
+base_path = None
+
+def init_app(app):
+    global base_path
+    base_path = app.config["BASE_PATH"]
 
 def hypermedia_response(dirpath, directories, files):
     """
@@ -62,7 +67,7 @@ def hypermedia_file_response(filepath, filename, mime_type, size):
     text_preview = []
     # For text files, read first 50 lines
     if mime_type.startswith("text/"):
-        full_path = os.path.join(BASE_PATH, filepath)
+        full_path = os.path.join(base_path, filepath)
         try:
             with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
                 text_preview = f.read().splitlines()[:50]  # first 50 lines

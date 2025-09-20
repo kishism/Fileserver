@@ -1,4 +1,4 @@
-# This is for codes that want to create/run the Flask app
+# ftp/__init__.py
 
 import os
 from flask import Flask
@@ -6,20 +6,22 @@ from dotenv import load_dotenv
 from .routes import register_routes
 
 def create_app():
-    
     app = Flask(__name__)
-    app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-for-local-only")
-    # In production, please omit the second argument.
+    app.config["BASE_PATH"] = os.getenv("BASE_PATH", "")
+    app.config["UPLOAD_BASE_PATH"] = os.getenv("UPLOAD_BASE_PATH", app.config["BASE_PATH"])
+    app.secret_key = os.getenv("FLASK_SECRET_KEY", "")
 
-    # app.secret_key = os.getenv("FLASK_SECRET_KEY")
-    # if app.secret_key is None:
-    #     raise RuntimeError("FLASK_SECRET_KEY environment variable not set!")
-
-    # Configuration
     app.config["DATABASE"] = "ftp.db"
-    app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB upload limit
+    app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB
 
-    # Register routes / blueprints
+    import ftp.models as models
+    import ftp.routes.hypermedia as hypermedia
+    import ftp.routes.directories as directories
+    
+    models.init_app(app)
+    hypermedia.init_app(app)
+    directories.init_app(app)
+
     register_routes(app)
 
     return app
