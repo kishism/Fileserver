@@ -4,6 +4,8 @@
 Opabinia is a lightweight, self-hosted web interface for managing your local files.  
 It allows you to browse directories, view previews, download files, and manage uploads all from your browser.
 
+![Opabinia Screenshot](opabinia.png)
+
 Before you can run `Opabinia`, you need these followings. 
 
 1) Git 
@@ -25,7 +27,10 @@ Clone the repo, and cd into a directory
 You need to construct a virtual environment (unless you don't mind using Python installed on your system) to install the required libraries to run the server. We recommend this approach as this prevent running into dependencies conflict if you have other python codes.
 
 Run
-python -m venv venv (note: you can name whatever you want for the last env. It's just a folder name)
+
+    python -m venv venv 
+
+(note: you can name whatever you want for the last env. It's just a folder name)
 
 and, to activate the environment:
 
