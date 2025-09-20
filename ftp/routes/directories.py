@@ -355,7 +355,7 @@ def delete_directory():
     physical_path = os.path.normpath(os.path.join(base_path, dirpath))
     print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Physical path resolved: {physical_path}")
 
-    if not physical_path.startswith(os.path.abspath(upload_base_path)):
+    if not physical_path.startswith(os.path.abspath(base_path)):
         flash("Invalid directory path.", "error")
         return redirect(request.referrer)
 

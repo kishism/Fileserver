@@ -1,20 +1,66 @@
-# Hypermedia-Driven FTP Server
 
-A simple FTP-like server built with **Flask** that serves directory and file structures as **hypermedia HTML**.  
+# Opabinia - Self-hosted File Web Server
 
-Instead of just exposing raw data, every response includes **hypermedia controls** (links, headers, and allowed methods) so both humans and automated clients can explore and interact with the system.
+Opabinia is a lightweight, self-hosted web interface for managing your local files.  
+It allows you to browse directories, view previews, download files, and manage uploads all from your browser.
 
-In a way, this project can be seen as an attempt to faithfully follow Fielding's original definition of REST, and proper use of HTTP verbs.
+Before you can run `Opabinia`, you need these followings. 
 
-## How Hypermedia Works
+1) Git 
+2) Python 3.10+
+3) pip
 
-This project is designed around the idea that every HTTP response should guide the client on what it can do next. Instead of just returning raw HTML or JSON, each response includes **hypermedia controls**: links and headers that describe available actions. 
+Make sure to latest recommended, do 
+`python -m pip install --upgrade pip`
 
-Hypermedia is the idea that information on the web should not only provide **data**, but also describe the **actions and navigation paths** available from that point. It extends the concept of “hypertext” (like links in an HTML page) into a broader system of **controls, affordances, and machine-readable guidance**.
+No special web server is required (we use Waitress).
 
-{###}
+## Installation
 
-Bozo Contributors
+Clone the repo, and cd into a directory
+
+    clone https://github.com/kishism/Fileserver.git
+    cd Fileserver
+
+You need to construct a virtual environment (unless you don't mind using Python installed on your system) to install the required libraries to run the server. We recommend this approach as this prevent running into dependencies conflict if you have other python codes.
+
+Run
+python -m venv venv (note: you can name whatever you want for the last env. It's just a folder name)
+
+and, to activate the environment:
+
+
+If you are on Window: 
+
+    venv\Scripts\Activate.ps1 # Powershell
+    venv\Scripts\activate.bat  # CMD
+
+or, if you are on linux
+
+    source /venv/Scripts/activate
+
+If you see `(venv)` beside the file path, then the virtual environment is on.
+
+After this, we will install all libraries from **requirements.txt**.
+From the project root folder, `run pip install -r requirements.txt`
+
+The installation process is completed, and next, we will start a startup wizard terminal by directly running start.py from the root.
+
+    python start.py
+
+## Setup Wizard
+
+-   Pick a folder to use as the file root (this will become `BASE_PATH`). Example: `C:\ftp-server` (Windows) or `/home/you/ftp-server` (Linux). You can create it now, or let the wizard warn you and create it.
+    
+-   Ensure the running user (you) has read/write access to that folder.
+
+-   Default server port: **5000** (configurable). If you plan to use port **80/443**, elevated privileges may be required on some OSes.
+    
+-   For local-only usage (recommended by default), bind to `127.0.0.1` so the app is not accessible from other machines.
+
+The setup is completed, and you can visit the web UI at  http://127.0.0.1:5000 in your browser.
+
+**Contributors**
 
 <div>
   <div>
