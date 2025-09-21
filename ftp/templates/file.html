@@ -38,6 +38,15 @@
   <button class="btn">Share</button>
 </div> --> <!-- commented for now -->
 
+<!-- Thant Htet Aung -->
+<!-- Added a new tool "Go-Back" -->
+<div class="go-back">
+  <a href="{{ url_for('directories.list_directory', dirpath=(dirpath.rsplit('/', 1)[0] if '/' in dirpath else '')) }}"
+     class="btn go-back-btn">
+    ⬅ Go Back
+  </a>
+</div>
+
 <!-- File Preview -->
 {% if mime_type.startswith('image/') %}
 <div class="file-preview file-preview-image">

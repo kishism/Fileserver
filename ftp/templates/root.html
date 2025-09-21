@@ -2,6 +2,7 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="toolbar">
+   
    <!-- Create Folder -->
    <form action="{{ url_for('directories.create_directory') }}" method="POST" class="toolbar-item hover-card-container">
       <input type="hidden" name="parent_dir" value="{{ dirname if dirname != 'root' else '' }}">
@@ -48,6 +49,7 @@
    <input type="file" id="drop-input" name="file" multiple hidden>
 </section>
 <h1>/</h1>
+
 <!-- Folder and file list -->
 <ul class="file-list">
    {% for d in directories %}

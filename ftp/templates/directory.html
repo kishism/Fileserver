@@ -72,6 +72,19 @@
        data-upload-url="{{ url_for('directories.upload_file', dirpath=dirpath if dirpath else '') }}">
 
 </section>
+
+<!-- Thant Htet Aung -->
+<!-- Added a new tool "Go-Back" -->
+{% if dirpath and dirpath != 'root' %}
+<div class="go-back">
+  <a href="{{ url_for('directories.list_directory', dirpath=(dirpath.rsplit('/', 1)[0] if '/' in dirpath else '')) }}"
+     class="btn go-back-btn">
+    ⬅ Go Back
+  </a>
+</div>
+{% endif %}
+
+
 <h2>{{ dirpath }}/</h2>
 <!-- Folder and file list -->
 <ul class="file-list">
