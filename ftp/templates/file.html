@@ -41,7 +41,11 @@
 <!-- Thant Htet Aung -->
 <!-- Added a new tool "Go-Back" -->
 <div class="go-back">
-  <a href="{{ url_for('directories.list_directory', dirpath=(dirpath.rsplit('/', 1)[0] if '/' in dirpath else '')) }}"
+  {% set parent_dir = '' %}
+  {% if '/' in filepath %}
+      {% set parent_dir = filepath.rsplit('/', 1)[0] %}
+  {% endif %}
+  <a href="{{ url_for('directories.list_directory', dirpath=parent_dir) }}"
      class="btn go-back-btn">
     ⬅ Go Back
   </a>

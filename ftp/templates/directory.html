@@ -402,5 +402,20 @@ document.querySelectorAll('#contextMenu .context-item').forEach(item => {
 document.addEventListener('keydown', e => {
     if(e.key === 'Escape') contextMenu.style.display = 'none';
 });
+
+
+window.addEventListener('beforeunload', () => {
+    const folderPath = window.location.pathname;
+    sessionStorage.setItem('scroll_' + folderPath, window.scrollY);
+});
+
+window.addEventListener('load', () => {
+    const folderPath = window.location.pathname;
+    const scrollPos = sessionStorage.getItem('scroll_' + folderPath);
+    if (scrollPos) {
+        window.scrollTo(0, parseInt(scrollPos));
+        sessionStorage.removeItem('scroll_' + folderPath);
+    }
+});
 </script>
 {% endblock %}
