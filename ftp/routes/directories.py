@@ -4,9 +4,11 @@
 # and uses hypermedia.py to render the response with headers.
 
 import io
+import requests
 import mimetypes
 from pathlib import Path
 from flask import current_app
+from flask import Response, abort
 from flask import Blueprint, abort, flash, render_template, request, redirect, send_file, url_for
 from ftp.models import *
 from ftp.routes.hypermedia import hypermedia_response, hypermedia_file_response
@@ -19,11 +21,10 @@ base_path = None
 upload_base_path = None
 
 def init_app(app):
-    global base_path
-    global base_path
+    global base_path, go_file_server_url
 
     base_path = app.config["BASE_PATH"]
-    upload_base_path = app.config["UPLOAD_BASE_PATH"]
+    go_file_server_url = app.config["GO_FILE_SERVER_URL"]
     
 # Initialize Colorama
 init(autoreset=True)
@@ -37,7 +38,46 @@ class NotExtended(HTTPException):
 # Create a blueprint for directory routes.
 # This groups all directory-related endpoints together.
 # No url_prefix here; it will be set when registering the blueprint in __init__.py
-bp = Blueprint("directories", __name__)  
+bp = Blueprint("directories", __name__) 
+
+@bp.route("/raw/<path:filepath>", methods=["GET"], endpoint="serve_file")
+def proxy_to_file_rendering(filepath):
+    go_url = f"{go_file_server_url}/raw/{filepath}"
+    try:
+
+        headers = {}
+        if "Range" in request.headers:
+            headers["Range"] = request.headers["Range"]
+
+        print(f"[DEBUG] Proxying file request to Go: {go_url}")
+        r = requests.get(go_url, stream=True, headers=headers, timeout=(5, 30))
+        
+        if r.status_code == 404:
+            print(f"[WARN] File not found on Go server: {filepath}")
+            abort(404)
+        elif r.status_code >= 500:
+            print(f"[ERROR] Go server error for file {filepath}: {r.status_code}")
+            abort(502, description="Upstream service error")
+        
+        forwarded_headers = dict(r.headers)
+        forwarded_headers.setdefault("Cache-Control", "no-cache")
+        forwarded_headers["X-Proxy-By"] = "Flask"
+        forwarded_headers["X-Served-By"] = "Go-Microservice"
+
+        print(f"[INFO] Streaming file through Flask: {filepath}, headers: {forwarded_headers}")
+        return Response(
+            r.iter_content(chunk_size=8192),
+            status=r.status_code,
+            content_type=r.headers.get("Content-Type", "application/octet-stream"),
+            headers=forwarded_headers
+        )
+    
+    except requests.Timeout:
+        print(f"[ERROR] Timeout when contacting Go service for {filepath}")
+        abort(504, description="Upstream service timeout")
+    except requests.RequestException as e:
+        print(f"[ERROR] Failed to contact Go service: {e}")
+        abort(502, description=f"Failed to contact Go service: {e}")
 
 # Syncing with filesystem
 def scan_physical_directory(dirpath):
@@ -266,7 +306,9 @@ def create_directory():
 # File Viewing
 @bp.route("/file/<path:filepath>", methods=["GET"])
 def view_file(filepath):
-    full_path = os.path.join(base_path, filepath)
+
+    normalized_path = Path(base_path) / Path(filepath)
+    full_path = str(normalized_path.resolve())
     print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Requested file path: '{filepath}', resolved full path: '{full_path}'")
 
     if not os.path.isfile(full_path):
@@ -287,21 +329,24 @@ def view_file(filepath):
     )
 
 # File Serving
-@bp.route("/raw/<path:filepath>", methods=["GET"])
-def serve_file(filepath):
-    full_path = os.path.join(base_path, filepath)
-    print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Serving raw file request for: '{filepath}', resolved full path: '{full_path}'")
+#
+#   This function is moved to Go microservices.
+#
+# @bp.route("/raw/<path:filepath>", methods=["GET"])
+# def serve_file(filepath):
+#     full_path = os.path.join(base_path, filepath)
+#     print(f"{Fore.CYAN}[DEBUG]{Style.RESET_ALL} Serving raw file request for: '{filepath}', resolved full path: '{full_path}'")
 
-    if not os.path.isfile(full_path):
-        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} File not found at path: '{full_path}', returning 404")
-        abort(404)
+#     if not os.path.isfile(full_path):
+#         print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} File not found at path: '{full_path}', returning 404")
+#         abort(404)
 
-    mime_type, _ = mimetypes.guess_type(full_path)
-    if mime_type is None:
-        mime_type = "application/octet-stream"
-    print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} Determined MIME type: '{mime_type}'")
+#     mime_type, _ = mimetypes.guess_type(full_path)
+#     if mime_type is None:
+#         mime_type = "application/octet-stream"
+#     print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} Determined MIME type: '{mime_type}'")
 
-    return send_file(full_path, mimetype=mime_type, as_attachment=False)
+#     return send_file(full_path, mimetype=mime_type, as_attachment=False)
 
 # debug route for file creation
 @bp.route('/test_create_folder/')

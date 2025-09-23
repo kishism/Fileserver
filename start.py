@@ -20,5 +20,5 @@ if __name__ == "__main__":
     HOST = os.getenv("HOST", "127.0.0.1")
 
     print("Starting FTP server via Waitress...")
-    print(f"Webserver serving at: {HOST}:{PORT}")
+    print(f"Webserver serving at: http://{HOST}:{PORT}")
     serve(app, host=HOST, port=PORT, threads=8)
