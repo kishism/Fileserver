@@ -6,6 +6,7 @@
 import io
 import requests
 import mimetypes
+import datetime
 from pathlib import Path
 from flask import current_app
 from flask import Response, abort
@@ -175,6 +176,9 @@ def upload_file(dirpath):
     mime_type = mime_type or file.mimetype or "application/octet-stream"
     print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Guessed MIME type: '{mime_type}'")
     
+    created_date = datetime.datetime.utcnow().isoformat() #date
+    print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Added created date: '{created_date}'")
+    
     # Redirect back to directory listing
     if not actual_dirpath:
         print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Redirecting to root directory listing after upload")
@@ -320,13 +324,17 @@ def view_file(filepath):
         mime_type = "application/octet-stream"
     file_size = os.path.getsize(full_path)
 
+    created_date = datetime.datetime.utcnow().isoformat()
+
     print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} Serving file '{filepath}' with MIME type '{mime_type}' and size {file_size} bytes")
     return hypermedia_file_response(
         filepath=filepath,
         filename=os.path.basename(full_path),
         mime_type=mime_type,
-        size=file_size
+        size=file_size,
+        created_date=created_date
     )
+
 
 # File Serving
 #

@@ -9,9 +9,7 @@ base_path = None
 
 def init_app(app):
     global base_path
-    global go_file_server_url
     base_path = app.config["BASE_PATH"]
-    go_file_server_url = app.config["GO_FILE_SERVER_URL"]
 
 def hypermedia_response(dirpath, directories, files):
     """
@@ -48,7 +46,7 @@ def hypermedia_response(dirpath, directories, files):
 
     return response
 
-def hypermedia_file_response(filepath, filename, mime_type, size):
+def hypermedia_file_response(filepath, filename, mime_type, size, created_date = None, modified_at = None):
     """
     Prepare a hypermedia HTML response for a file view.
     Renders 'file.html' with file metadata.
@@ -83,6 +81,8 @@ def hypermedia_file_response(filepath, filename, mime_type, size):
         filename=filename,
         mime_type=mime_type,
         size=size,
+        created_date = created_date,
+        modified_at = modified_at,
         text_preview=text_preview,
         language=language
     )
@@ -110,17 +110,6 @@ def hypermedia_file_response(filepath, filename, mime_type, size):
 
     links.append(f'<{parent_path}>; rel="parent"')
 
-    # Stream (raw bytes from Go service)
-    go_stream_url = f"{go_file_server_url}/raw/{filepath}"
-    links.append(f'<{go_file_server_url}>; rel="stream"; type="{mime_type}"')
-                 
-    # Metadata (JSON representation)
-    metadata_url = f"{request.path}?format=json"
-    links.append(f'<{metadata_url}>; rel="metadata"; type="application/json"')
-
-    # Optional download link
-    links.append(f'<{go_stream_url}>; rel="download"; type="{mime_type}"')
-    
     # Set Link header with all links
     response.headers["Link"] = ", ".join(links)
 
