@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import shutil
 import sqlite3
 import time
+import datetime
 from flask import current_app
 import os 
 from werkzeug.utils import secure_filename
@@ -128,15 +129,18 @@ def save_file_to_directory(file, dirpath):
     # Reset file stream position to beginning to allow physical save after reading
     file.stream.seek(0)
 
-    print(f"Saving file '{file.filename}' metadata and content into database")
+    # Get timestamps
+    now = datetime.datetime.utcnow().isoformat()
+
+    print(f"Saving file '{file.filename}' metadata into database")
     with sqlite3.connect(current_app.config["DATABASE"]) as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO files (name, mime_type, content, directory_id) VALUES (?, ?, ?, ?)",
-            (file.filename, file.mimetype, file_content, dir_id)
+            "INSERT INTO files (name, mime_type, content, directory_id, created_at, modified_at) VALUES (?, ?, ?, ?, ?)",
+            (file.filename, file.mimetype, file_content, dir_id, now, now)
         )
         conn.commit()
-        print(f"File '{file.filename}' saved in DB with directory ID {dir_id}")
+        print(f"File '{file.filename}' saved in DB with directory ID {dir_id}, {now}, {now}")
 
     # Physical file saving
     physical_dir = upload_base_path if dir_to_use == "root" else os.path.join(upload_base_path, dir_to_use)
@@ -248,7 +252,7 @@ def create_directory_in_db(parent_path, new_dir_path):
 
 def get_file_from_db(filepath):
     """
-    Retrieve file bytes and MIME type from DB by full path.
+    Retrieve file content, MIME type, size, and timestamps from DB by full path.
     """
     print(f"Retrieving file from DB at path: '{filepath}'")
     with get_db_connection() as conn:
@@ -270,19 +274,30 @@ def get_file_from_db(filepath):
             row = cursor.fetchone()
             if row is None:
                 print(f"Directory '{part}' not found. File path invalid.")
-                return None, None
+                return None
             parent_id = row["id"]
 
         cursor.execute(
-            "SELECT content, mime_type FROM files WHERE name=? AND directory_id IS ?",
+            """
+            SELECT content, mime_type, length(content) AS size,
+                   created_at, modified_at
+            FROM files
+            WHERE name=? AND directory_id IS ?
+            """,
             (filename, parent_id)
         )
         row = cursor.fetchone()
         print(f"Query result for file '{filename}': {row is not None}")
 
         if row:
-            return row["content"], row["mime_type"]
-        return
+            return {
+                "content": row["content"],
+                "mime_type": row["mime_type"],
+                "size": row["size"],
+                "created_at": row["created_at"],
+                "modified_at": row["modified_at"]
+            }
+        return None
 
 def delete_file_from_db_and_disk(filepath):
     if filepath.startswith("root/"):
