@@ -129,13 +129,28 @@
     <td>{{ dirpath or '/' }}</td> <!-- Broken -->
   </tr>
   <tr>
-    <th>Created</th>
-    <td>{{ created_date }}</td> <!-- Construct a row in database -->
+    <th>Creation Date</th>
+    <td id="creation-date">Loading...</td> 
   </tr>
   <tr>
     <th>Last modified</th>
-    <td>{{ modified_at  or "Coming soon"}}</td> <!-- Construct a row in database -->
+    <td>{{ modified_at }}</td> <!-- Construct a row in database -->
   </tr>
 </table>
+
+<script>
+  const { DateTime } = luxon;
+  let created_date = "{{ created_date }}";  
+
+  if (created_date) {
+    // Parse as ISO and set timezone to Asia/Yangon (Burma)
+    let dt = DateTime.fromISO(created_date, { zone: "utc" }).setZone("Asia/Yangon");
+
+    let formatted = dt.toLocaleString(DateTime.DATETIME_MED);  
+    console.log("Formatted date:", formatted);
+
+    document.getElementById("creation-date").innerText = formatted;
+}
+</script>
 
 {% endblock %}

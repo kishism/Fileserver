@@ -15,8 +15,6 @@ def setup_database():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         parent_id INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(parent_id) REFERENCES directories(id)
     )
     """)
@@ -30,8 +28,7 @@ def setup_database():
         mime_type TEXT,
         size INTEGER,
         content BLOB,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        creation_date DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(directory_id) REFERENCES directories(id)
     )
     """)

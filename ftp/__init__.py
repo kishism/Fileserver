@@ -51,7 +51,7 @@ def start_go_service():
 
     threading.Thread(target=monitor_stdout, daemon=True).start()
 
-    if not ready_event.wait(timeout=10):
+    if not ready_event.wait(timeout=200):
         print("[WARNING] Go microservice did not signal readiness in 10 seconds. Requests may fail.")
 
 def stop_go_service():

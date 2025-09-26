@@ -124,64 +124,86 @@ def save_file_to_directory(file, dirpath):
     dir_id = ensure_directory_exists(dir_to_use)
     print(f"Directory ID obtained: {dir_id}")
 
-    # Read file content for BLOB saving
-    file_content = file.read()
-    # Reset file stream position to beginning to allow physical save after reading
-    file.stream.seek(0)
+    try:
+        # Read file content for BLOB saving
+        file_content = file.read()
+        file.stream.seek(0)  # Reset for physical save
 
-    # Get timestamps
-    now = datetime.datetime.utcnow().isoformat()
+        creation_date = datetime.datetime.utcnow()
 
-    print(f"Saving file '{file.filename}' metadata into database")
-    with sqlite3.connect(current_app.config["DATABASE"]) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO files (name, mime_type, content, directory_id, created_at, modified_at) VALUES (?, ?, ?, ?, ?)",
-            (file.filename, file.mimetype, file_content, dir_id, now, now)
-        )
-        conn.commit()
-        print(f"File '{file.filename}' saved in DB with directory ID {dir_id}, {now}, {now}")
+        print(f"Saving file '{file.filename}' metadata into database")
+        db_path = current_app.config["DATABASE"]
+        with sqlite3.connect(db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO files (name, mime_type, content, directory_id, creation_date) VALUES (?, ?, ?, ?, ?)",
+                (
+                    file.filename,
+                    file.mimetype,
+                    file_content,
+                    dir_id,
+                    creation_date.isoformat()
+                )
+            )
+            conn.commit()
+            print(f"Metadata for '{file.filename}, {file.mimetype}, {file_content}, {dir_id}, {creation_date}' saved successfully in DB")
+
+    except Exception as e:
+        print(f"[ERROR] Failed to save metadata: {e}")
+        raise
 
     # Physical file saving
-    physical_dir = upload_base_path if dir_to_use == "root" else os.path.join(upload_base_path, dir_to_use)
-    print(f"Ensuring physical directory '{physical_dir}' exists")
-    os.makedirs(physical_dir, exist_ok=True)
+    try:
+        physical_dir = upload_base_path if dir_to_use == "root" else os.path.join(upload_base_path, dir_to_use)
+        print(f"Ensuring physical directory '{physical_dir}' exists")
+        os.makedirs(physical_dir, exist_ok=True)
 
-    filename = secure_filename(file.filename)
-    physical_file_path = os.path.join(physical_dir, filename)
-    print(f"Saving physical file to '{physical_file_path}'")
-    file.save(physical_file_path)
-    print(f"Physical file saved successfully")
+        filename = secure_filename(file.filename)
+        physical_file_path = os.path.join(physical_dir, filename)
+        print(f"Saving physical file to '{physical_file_path}'")
+        file.save(physical_file_path)
+        print(f"Physical file saved successfully")
 
+    except Exception as e:
+        print(f"[ERROR] Failed to save physical file: {e}")
+        raise
 
 def save_file_from_folder(file, path):
     """
     Save a file into the given directory path.
     Automatically ensures the directory path exists.
+    Also saves metadata into `files` table.
     """
     parts = path.strip("/").split("/")
     dirname = "/".join(parts[:-1]) if len(parts) > 1 else None
     filename = parts[-1]
 
     print(f"Saving file '{filename}' to path '{path}'")
-    
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        print("Database connection opened")
 
-        dir_id = None
-        if dirname:
-            print(f"Ensuring directory '{dirname}' exists")
-            dir_id = ensure_directory_exists(dirname)
-            print(f"Directory ID obtained: {dir_id}")
-        
-        cursor.execute(
-            "INSERT INTO files (name, mime_type, directory_id) VALUES (?, ?, ?)",
-            (filename, file.mimetype, dir_id)
-        )
-        conn.commit()
-        print(f"File '{filename}' saved to database with directory ID {dir_id}")
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            print("Database connection opened")
 
+            dir_id = None
+            if dirname:
+                print(f"Ensuring directory '{dirname}' exists")
+                dir_id = ensure_directory_exists(dirname)
+                print(f"Directory ID obtained: {dir_id}")
+
+            creation_date = datetime.datetime.utcnow()
+
+            print(f"Inserting file metadata into database")
+            cursor.execute(
+                "INSERT INTO files (name, mime_type, directory_id, creation_date) VALUES (?, ?, ?, ?)",
+                (filename, file.mimetype, dir_id, creation_date.isoformat())
+            )
+            conn.commit()
+            print(f"Metadata for '{filename}' saved successfully in DB")
+
+    except Exception as e:
+        print(f"[ERROR] Failed to save file metadata: {e}")
+        raise
 
 def create_directory_in_db(parent_path, new_dir_path):
     with get_db_connection() as conn:
@@ -294,8 +316,7 @@ def get_file_from_db(filepath):
                 "content": row["content"],
                 "mime_type": row["mime_type"],
                 "size": row["size"],
-                "created_at": row["created_at"],
-                "modified_at": row["modified_at"]
+                "created_at": row["created_at"]
             }
         return None
 

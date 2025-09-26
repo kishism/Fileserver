@@ -137,7 +137,6 @@ def list_directory(dirpath):
     print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Subdirectory contains {len(directories)} directories and {len(files)} files")
     return hypermedia_response(dirpath=dirpath or "root", directories=directories, files=files)
 
-# File Upload 
 @bp.route("/upload", defaults={"dirpath": None}, methods=["POST"])
 @bp.route("/<path:dirpath>/upload", methods=["POST"])
 def upload_file(dirpath):
@@ -146,22 +145,19 @@ def upload_file(dirpath):
         print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Upload failed: No file provided.")
         abort(400, description="No file provided")
     
-    # Secure the filename to avoid directory traversal attacks
     filename = secure_filename(file.filename)
     print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Uploading file '{filename}' to directory '{dirpath or 'root'}'")
     
-    # Determine directory path on disk
     actual_dirpath = dirpath or ""
     physical_dir = os.path.join(base_path, actual_dirpath)
     try:
-        os.makedirs(physical_dir, exist_ok=True)  # Ensure target dir exists
+        os.makedirs(physical_dir, exist_ok=True)
         print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} Ensured upload directory exists: '{physical_dir}'")
     except Exception as e:
         print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to create upload directory '{physical_dir}': {e}")
         flash(f"Failed to create upload directory: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=actual_dirpath))
     
-    # Save file physically on disk
     physical_file_path = os.path.join(physical_dir, filename)
     try:
         file.save(physical_file_path)
@@ -171,22 +167,28 @@ def upload_file(dirpath):
         flash(f"Failed to save uploaded file: {e}", "error")
         return redirect(request.referrer or url_for("directories.list_directory", dirpath=actual_dirpath))
     
-    # Guess MIME type for metadata
     mime_type, _ = mimetypes.guess_type(physical_file_path)
     mime_type = mime_type or file.mimetype or "application/octet-stream"
     print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Guessed MIME type: '{mime_type}'")
     
-    created_date = datetime.datetime.utcnow().isoformat() #date
+    created_timestamp = os.path.getctime(physical_file_path)
+    created_date = datetime.datetime.fromtimestamp(created_timestamp)
     print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Added created date: '{created_date}'")
-    
-    # Redirect back to directory listing
+
+    # Save metadata into DB
+    try:
+        save_file_to_directory(file, dirpath)
+        print(f"{Fore.GREEN}[SUCCESS]{Style.RESET_ALL} File metadata saved into database")
+    except Exception as e:
+        print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to save file metadata: {e}")
+
     if not actual_dirpath:
         print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Redirecting to root directory listing after upload")
         return redirect(url_for("directories.list_root_directory"))
     else:
         print(f"{Fore.CYAN}[INFO]{Style.RESET_ALL} Redirecting to directory listing '{actual_dirpath}' after upload")
         return redirect(url_for("directories.list_directory", dirpath=actual_dirpath))
-
+    
 # Folder Upload
 @bp.route("/upload_folder", methods=["POST"])
 @bp.route("/<path:dirpath>/upload_folder", methods=["POST"])
@@ -324,9 +326,36 @@ def view_file(filepath):
         mime_type = "application/octet-stream"
     file_size = os.path.getsize(full_path)
 
-    created_date = datetime.datetime.utcnow().isoformat()
+    dirpath = str(Path(filepath).parent)
+    filename = Path(filepath).name
 
-    print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} Serving file '{filepath}' with MIME type '{mime_type}' and size {file_size} bytes")
+    created_date = None
+    try: 
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            if dirpath == ".":
+                dir_id = None
+            else:
+                cursor.execute("SELECT id FROM directories WHERE name = ?", (dirpath,))
+                row = cursor.fetchone()
+                dir_id = row[0] if row else None
+
+            cursor.execute(
+                "SELECT creation_date FROM files WHERE name = ? and directory_id is ?",
+                (filename, dir_id)
+            )
+            row = cursor.fetchone()
+            if row:
+                created_date = row[0]
+    except Exception as e:
+          print(f"{Fore.RED}[ERROR]{Style.RESET_ALL} Failed to fetch creation date: {e}")
+
+    # Fallback if DB lookup fails
+    if not created_date:
+        created_date = datetime.datetime.utcnow().isoformat()
+
+    print(f"{Fore.GREEN}[INFO]{Style.RESET_ALL} Serving file '{filepath}' with MIME type '{mime_type}', size {file_size} bytes, creation date {created_date}")
     return hypermedia_file_response(
         filepath=filepath,
         filename=os.path.basename(full_path),
