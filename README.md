@@ -90,3 +90,7 @@ The setup is completed, and you can visit the web UI at  http://127.0.0.1:5000 i
   </a>
   
 </div>
+
+<div>
+    <p> This project is archived for portfolio purposes. </p>
+</div>
